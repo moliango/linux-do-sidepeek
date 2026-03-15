@@ -343,6 +343,22 @@ body.ld-drawer-page-open #ld-drawer-root {
   padding: 16px 18px 28px;
 }
 
+#ld-drawer-root.ld-drawer-iframe-mode .ld-drawer-body {
+  overflow: hidden;
+}
+
+#ld-drawer-root.ld-drawer-iframe-mode .ld-drawer-content {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  padding: 12px;
+}
+
+#ld-drawer-root.ld-drawer-iframe-mode .ld-drawer-reply-fab,
+#ld-drawer-root.ld-drawer-iframe-mode .ld-drawer-reply-panel {
+  display: none !important;
+}
+
 #ld-drawer-root .ld-drawer-reply-fab {
   position: absolute;
   top: 50%;
@@ -647,6 +663,24 @@ body.ld-drawer-page-open #ld-drawer-root {
   border-style: solid;
   color: #92400e;
   background: rgba(255, 247, 237, 0.92);
+}
+
+#ld-drawer-root .ld-iframe-fallback {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#ld-drawer-root .ld-topic-iframe {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  border: 1px solid var(--primary-low, rgba(15, 23, 42, 0.12));
+  border-radius: 16px;
+  background: #fff;
 }
 
 #ld-drawer-root .ld-loading-state {
