@@ -49,6 +49,11 @@
     "#list-area .show-more.has-topics",
     ".contents > .show-more.has-topics"
   ].join(", ");
+  // 选择器列表不能直接拼 `${TOPIC_TRACKER_SELECTOR} ...`，否则只会给最后一段补后缀。
+  const TOPIC_TRACKER_CLICKABLE_SELECTOR = TOPIC_TRACKER_SELECTOR
+    .split(",")
+    .map((selector) => `${selector.trim()} .alert.clickable`)
+    .join(", ");
   const TOPIC_TRACKER_VERTICAL_SELECTOR = [
     ".list-controls .navigation-container",
     ".navigation-container",
@@ -540,10 +545,10 @@
     }
 
     const clickable = target instanceof Document
-      ? target.querySelector(`${TOPIC_TRACKER_SELECTOR} .alert.clickable`)
-      : target.closest(".alert.clickable");
+      ? target.querySelector(TOPIC_TRACKER_CLICKABLE_SELECTOR)
+      : target.closest(TOPIC_TRACKER_CLICKABLE_SELECTOR);
 
-    if (!(clickable instanceof Element) || !clickable.closest(TOPIC_TRACKER_SELECTOR)) {
+    if (!(clickable instanceof Element)) {
       return null;
     }
 
