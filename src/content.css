@@ -230,6 +230,7 @@ body.ld-drawer-page-open #ld-drawer-root {
 }
 
 #ld-drawer-root .ld-drawer-nav,
+#ld-drawer-root .ld-drawer-refresh,
 #ld-drawer-root .ld-drawer-link,
 #ld-drawer-root .ld-drawer-close,
 #ld-drawer-root .ld-drawer-settings-toggle,
@@ -246,18 +247,21 @@ body.ld-drawer-page-open #ld-drawer-root {
   text-decoration: none;
 }
 
-#ld-drawer-root .ld-drawer-nav:disabled {
+#ld-drawer-root .ld-drawer-nav:disabled,
+#ld-drawer-root .ld-drawer-refresh:disabled {
   opacity: 0.48;
   cursor: not-allowed;
 }
 
-#ld-drawer-root .ld-drawer-nav:disabled:hover {
+#ld-drawer-root .ld-drawer-nav:disabled:hover,
+#ld-drawer-root .ld-drawer-refresh:disabled:hover {
   border-color: var(--primary-low, rgba(15, 23, 42, 0.12));
   color: inherit;
 }
 
 #ld-drawer-root .ld-drawer-close:hover,
 #ld-drawer-root .ld-drawer-nav:hover,
+#ld-drawer-root .ld-drawer-refresh:hover,
 #ld-drawer-root .ld-drawer-link:hover,
 #ld-drawer-root .ld-drawer-settings-toggle:hover,
 #ld-drawer-root .ld-settings-close:hover,

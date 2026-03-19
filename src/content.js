@@ -101,6 +101,7 @@
     settingsCard: null,
     settingsCloseButton: null,
     settingsToggle: null,
+    latestRepliesRefreshButton: null,
     prevButton: null,
     nextButton: null,
     resizeHandle: null,
@@ -127,6 +128,7 @@
     settings: loadSettings(),
     isResizing: false,
     isLoadingMorePosts: false,
+    isRefreshingLatestReplies: false,
     isReplySubmitting: false,
     loadMoreError: "",
     loadMoreStatus: null,
@@ -165,6 +167,7 @@
               <button class="ld-drawer-nav" type="button" data-nav="prev">上一帖</button>
               <button class="ld-drawer-nav" type="button" data-nav="next">下一帖</button>
               <button class="ld-drawer-settings-toggle" type="button" aria-expanded="false" aria-controls="ld-drawer-settings">选项</button>
+              <button class="ld-drawer-refresh" type="button" aria-label="刷新最新回复" title="刷新最新回复" hidden>刷新</button>
               <a class="ld-drawer-link" href="https://linux.do/latest" target="_blank" rel="noopener noreferrer">新标签打开</a>
               <button class="ld-drawer-close" type="button" aria-label="关闭抽屉">关闭</button>
             </div>
@@ -274,6 +277,7 @@
     state.settingsCard = root.querySelector(".ld-drawer-settings-card");
     state.settingsCloseButton = root.querySelector(".ld-settings-close");
     state.settingsToggle = root.querySelector(".ld-drawer-settings-toggle");
+    state.latestRepliesRefreshButton = root.querySelector(".ld-drawer-refresh");
     state.prevButton = root.querySelector('[data-nav="prev"]');
     state.nextButton = root.querySelector('[data-nav="next"]');
     state.resizeHandle = root.querySelector(".ld-drawer-resize-handle");
@@ -282,6 +286,7 @@
     state.prevButton.addEventListener("click", () => navigateTopic(-1));
     state.nextButton.addEventListener("click", () => navigateTopic(1));
     state.settingsToggle.addEventListener("click", toggleSettingsPanel);
+    state.latestRepliesRefreshButton.addEventListener("click", handleLatestRepliesRefresh);
     state.replyButton.addEventListener("click", toggleReplyPanel);
     state.replyCancelButton.addEventListener("click", () => setReplyPanelOpen(false));
     state.replySubmitButton.addEventListener("click", handleReplySubmit);
@@ -299,6 +304,7 @@
     syncSettingsUI();
     applyDrawerWidth();
     syncNavigationState();
+    syncLatestRepliesRefreshUI();
     syncReplyUI();
     updateSettingsPopoverPosition();
   }
@@ -493,8 +499,10 @@
     state.currentResolvedTargetPostNumber = null;
     state.currentTargetSpec = null;
     state.currentTopic = null;
+    state.currentLatestRepliesTopic = null;
     state.loadMoreError = "";
     state.isLoadingMorePosts = false;
+    state.isRefreshingLatestReplies = false;
     resetReplyComposer();
     state.title.textContent = fallbackTitle || "加载中…";
     state.meta.textContent = "正在载入帖子内容…";
@@ -510,6 +518,7 @@
     applyDrawerMode();
     updateSettingsPopoverPosition();
     scheduleTopicTrackerPositionSync();
+    syncLatestRepliesRefreshUI();
 
     loadTopic(topicUrl, fallbackTitle, topicIdHint);
   }
@@ -540,6 +549,7 @@
     state.currentTopic = null;
     state.currentLatestRepliesTopic = null;
     state.currentTargetSpec = null;
+    state.isRefreshingLatestReplies = false;
     state.meta.textContent = "";
     state.loadMoreError = "";
     state.isLoadingMorePosts = false;
@@ -548,6 +558,7 @@
     clearHighlight();
     setSettingsPanelOpen(false);
     syncNavigationState();
+    syncLatestRepliesRefreshUI();
     scheduleTopicTrackerPositionSync();
   }
 
@@ -768,7 +779,7 @@
     openDrawer(nextEntry.url, nextEntry.title, nextEntry.link);
   }
 
-  async function loadTopic(topicUrl, fallbackTitle, topicIdHint = null) {
+  async function loadTopic(topicUrl, fallbackTitle, topicIdHint = null, options = {}) {
     closeImagePreview();
     cancelLoadMoreRequest();
     state.isLoadingMorePosts = false;
@@ -842,7 +853,8 @@
 
       renderTopic(topic, topicUrl, fallbackTitle, resolvedTargetPostNumber, {
         latestRepliesTopic,
-        targetSpec
+        targetSpec,
+        preserveScrollTop: options.preserveScrollTop
       });
     } catch (error) {
       if (controller.signal.aborted) {
@@ -854,6 +866,7 @@
       if (state.abortController === controller) {
         state.abortController = null;
       }
+      syncLatestRepliesRefreshUI();
     }
   }
 
@@ -880,6 +893,7 @@
     state.title.textContent = topic.title || fallbackTitle || "帖子预览";
     state.meta.textContent = buildTopicMeta(topic, viewModel.posts.length);
     state.content.replaceChildren(buildTopicView(topic, viewModel));
+    syncLatestRepliesRefreshUI();
     syncReplyUI();
 
     if (shouldPreserveScroll && state.drawerBody) {
@@ -1544,15 +1558,18 @@
     cancelLoadMoreRequest();
     cancelReplyRequest();
     state.currentTopic = null;
+    state.currentLatestRepliesTopic = null;
     state.currentTargetSpec = null;
     state.currentResolvedTargetPostNumber = null;
     state.isLoadingMorePosts = false;
+    state.isRefreshingLatestReplies = false;
     state.isReplySubmitting = false;
     state.loadMoreError = "";
     state.loadMoreStatus = null;
     state.title.textContent = fallbackTitle || "帖子预览";
     state.meta.textContent = "智能预览暂时不可用。";
     resetReplyComposer();
+    syncLatestRepliesRefreshUI();
 
     const container = document.createElement("div");
     container.className = "ld-topic-error-state";
@@ -1579,12 +1596,14 @@
     state.currentTargetSpec = null;
     state.currentResolvedTargetPostNumber = null;
     state.isLoadingMorePosts = false;
+    state.isRefreshingLatestReplies = false;
     state.isReplySubmitting = false;
     state.loadMoreError = "";
     state.loadMoreStatus = null;
     state.title.textContent = fallbackTitle || "帖子预览";
     state.meta.textContent = forcedIframe ? "当前为整页模式。" : "接口预览失败，已回退为完整页面。";
     resetReplyComposer();
+    syncLatestRepliesRefreshUI();
 
     const container = document.createElement("div");
     container.className = "ld-iframe-fallback";
@@ -1609,6 +1628,27 @@
   function setIframeModeEnabled(enabled) {
     state.root?.classList.toggle(IFRAME_MODE_CLASS, enabled);
     document.body.classList.toggle(PAGE_IFRAME_OPEN_CLASS, Boolean(state.currentUrl) && enabled);
+  }
+
+  async function handleLatestRepliesRefresh() {
+    if (!canRefreshLatestReplies()) {
+      return;
+    }
+
+    state.isRefreshingLatestReplies = true;
+    syncLatestRepliesRefreshUI();
+
+    try {
+      await loadTopic(
+        state.currentUrl,
+        state.currentFallbackTitle,
+        state.currentTopicIdHint,
+        { preserveScrollTop: state.drawerBody?.scrollTop }
+      );
+    } finally {
+      state.isRefreshingLatestReplies = false;
+      syncLatestRepliesRefreshUI();
+    }
   }
 
   function refreshCurrentView() {
@@ -1651,6 +1691,42 @@
     }
 
     loadTopic(state.currentUrl, state.currentFallbackTitle, state.currentTopicIdHint);
+  }
+
+  function canRefreshLatestReplies() {
+    if (!state.currentUrl || !state.currentTopic) {
+      return false;
+    }
+
+    if (state.root?.classList.contains(IFRAME_MODE_CLASS)) {
+      return false;
+    }
+
+    if (state.settings.postMode === "first" || state.settings.replyOrder !== "latestFirst") {
+      return false;
+    }
+
+    const targetSpec = state.currentTargetSpec || getTopicTargetSpec(state.currentUrl, state.currentTopicIdHint);
+    if (targetSpec?.targetPostNumber) {
+      return false;
+    }
+
+    if (targetSpec?.hasTarget && targetSpec.targetToken && targetSpec.targetToken !== "last") {
+      return false;
+    }
+
+    return true;
+  }
+
+  function syncLatestRepliesRefreshUI() {
+    if (!state.latestRepliesRefreshButton) {
+      return;
+    }
+
+    const shouldShow = canRefreshLatestReplies();
+    state.latestRepliesRefreshButton.hidden = !shouldShow;
+    state.latestRepliesRefreshButton.disabled = !shouldShow || state.isRefreshingLatestReplies || Boolean(state.abortController);
+    state.latestRepliesRefreshButton.textContent = state.isRefreshingLatestReplies ? "刷新中..." : "刷新";
   }
 
   function shouldLoadLatestRepliesTopic(topic, targetSpec) {
