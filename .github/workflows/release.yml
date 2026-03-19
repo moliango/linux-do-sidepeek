@@ -21,15 +21,20 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           mkdir -p dist
-          ZIP_NAME="linux-do-sidepeek-${TAG#v}.zip"
-          zip -r "dist/${ZIP_NAME}" manifest.json src
-          echo "ZIP_NAME=${ZIP_NAME}" >> "$GITHUB_ENV"
+          CHROME_ZIP_NAME="linux-do-sidepeek-${TAG#v}-chrome.zip"
+          FIREFOX_XPI_NAME="linux-do-sidepeek-${TAG#v}-firefox-unsigned.xpi"
+          zip -r "dist/${CHROME_ZIP_NAME}" manifest.json src
+          zip -r "dist/${FIREFOX_XPI_NAME}" manifest.json src
+          echo "CHROME_ZIP_NAME=${CHROME_ZIP_NAME}" >> "$GITHUB_ENV"
+          echo "FIREFOX_XPI_NAME=${FIREFOX_XPI_NAME}" >> "$GITHUB_ENV"
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          files: dist/${{ env.ZIP_NAME }}
+          files: |
+            dist/${{ env.CHROME_ZIP_NAME }}
+            dist/${{ env.FIREFOX_XPI_NAME }}
           generate_release_notes: true
           make_latest: true
