@@ -357,6 +357,24 @@ body.ld-drawer-page-open #ld-drawer-root {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
+}
+
+#ld-drawer-root .ld-drawer-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+#ld-drawer-root .ld-drawer-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#ld-drawer-root .ld-drawer-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--tertiary, #3b82f6) 40%, transparent);
+  border-radius: 999px;
+}
+
+#ld-drawer-root .ld-drawer-body::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--tertiary, #3b82f6) 64%, transparent);
 }
 
 #ld-drawer-root .ld-drawer-content {
