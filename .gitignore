@@ -27,4 +27,5 @@ node_modules/
 
 
 # Local-only notes
+temp/
 POST_OVERVIEW.md
