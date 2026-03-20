@@ -10,6 +10,7 @@
   const IMAGE_PREVIEW_SCALE_MIN = 1;
   const IMAGE_PREVIEW_SCALE_MAX = 4;
   const IMAGE_PREVIEW_SCALE_STEP = 0.2;
+  const REPLY_UPLOAD_MARKER = "\u2063";
   const DEFAULT_SETTINGS = {
     previewMode: "smart",
     postMode: "all",
@@ -124,6 +125,10 @@
     abortController: null,
     loadMoreAbortController: null,
     replyAbortController: null,
+    replyUploadControllers: [],
+    replyUploadPendingCount: 0,
+    replyUploadSerial: 0,
+    replyComposerSessionId: 0,
     lastLocation: location.href,
     settings: loadSettings(),
     isResizing: false,
@@ -238,7 +243,7 @@
             <div class="ld-reply-panel-title">回复主题</div>
             <button class="ld-reply-panel-close" type="button" aria-label="关闭快速回复">关闭</button>
           </div>
-          <textarea class="ld-reply-textarea" rows="7" placeholder="写点什么... 支持 Markdown。Ctrl+Enter 或 Cmd+Enter 可发送"></textarea>
+          <textarea class="ld-reply-textarea" rows="7" placeholder="写点什么... 支持 Markdown，可直接粘贴图片自动上传。Ctrl+Enter 或 Cmd+Enter 可发送"></textarea>
           <div class="ld-reply-status" aria-live="polite"></div>
           <div class="ld-reply-actions">
             <button class="ld-reply-action" type="button" data-action="cancel">取消</button>
@@ -292,6 +297,7 @@
     state.replySubmitButton.addEventListener("click", handleReplySubmit);
     root.querySelector(".ld-reply-panel-close").addEventListener("click", () => setReplyPanelOpen(false));
     state.replyTextarea.addEventListener("keydown", handleReplyTextareaKeydown);
+    state.replyTextarea.addEventListener("paste", handleReplyTextareaPaste);
     root.addEventListener("click", handleDrawerRootClick);
     root.addEventListener("wheel", handleDrawerRootWheel, { passive: false });
     state.drawerBody.addEventListener("scroll", handleDrawerBodyScroll, { passive: true });
@@ -1221,8 +1227,302 @@
     handleReplySubmit();
   }
 
+  function handleReplyTextareaPaste(event) {
+    if (
+      event.defaultPrevented ||
+      event.target !== state.replyTextarea ||
+      !state.currentTopic ||
+      state.isReplySubmitting
+    ) {
+      return;
+    }
+
+    const files = getReplyPasteImageFiles(event);
+    if (!files.length) {
+      return;
+    }
+
+    event.preventDefault();
+    queueReplyPasteUploads(files).catch(() => {});
+  }
+
+  function getReplyPasteImageFiles(event) {
+    const clipboardData = event?.clipboardData;
+    if (!clipboardData) {
+      return [];
+    }
+
+    const types = Array.from(clipboardData.types || []);
+    if (types.includes("text/plain") || types.includes("text/html")) {
+      return [];
+    }
+
+    return Array.from(clipboardData.files || [])
+      .map(normalizeReplyUploadFile)
+      .filter((file) => file instanceof File && isImageUploadFile(file));
+  }
+
+  function normalizeReplyUploadFile(file) {
+    if (!(file instanceof Blob)) {
+      return null;
+    }
+
+    const fileName = resolveReplyUploadFileName(file);
+    if (file instanceof File && file.name) {
+      return file;
+    }
+
+    if (typeof File === "function") {
+      return new File([file], fileName, {
+        type: file.type || "image/png",
+        lastModified: file instanceof File ? file.lastModified : Date.now()
+      });
+    }
+
+    try {
+      file.name = fileName;
+    } catch {
+      // 某些浏览器实现里 name 只读，忽略即可。
+    }
+
+    return file;
+  }
+
+  function resolveReplyUploadFileName(file) {
+    const originalName = typeof file?.name === "string"
+      ? file.name.trim()
+      : "";
+    if (originalName) {
+      return originalName;
+    }
+
+    return `image.${mimeTypeToFileExtension(file?.type)}`;
+  }
+
+  function mimeTypeToFileExtension(mimeType) {
+    const normalized = String(mimeType || "").toLowerCase();
+    if (normalized === "image/jpeg") {
+      return "jpg";
+    }
+
+    if (normalized === "image/svg+xml") {
+      return "svg";
+    }
+
+    const match = normalized.match(/^image\/([a-z0-9.+-]+)$/i);
+    if (!match) {
+      return "png";
+    }
+
+    return match[1].replace("svg+xml", "svg");
+  }
+
+  function isImageUploadFile(file) {
+    if (!(file instanceof File)) {
+      return false;
+    }
+
+    if (String(file.type || "").toLowerCase().startsWith("image/")) {
+      return true;
+    }
+
+    return isImageUploadName(file.name || "");
+  }
+
+  async function queueReplyPasteUploads(files) {
+    if (!state.replyTextarea || !state.currentTopic) {
+      return;
+    }
+
+    const sessionId = state.replyComposerSessionId;
+    const placeholders = insertReplyUploadPlaceholders(files);
+    if (!placeholders.length) {
+      return;
+    }
+
+    state.replyUploadPendingCount += placeholders.length;
+    syncReplyUI();
+    updateReplyUploadStatus();
+
+    const results = await Promise.allSettled(
+      placeholders.map((entry) => uploadReplyPasteFile(entry, sessionId))
+    );
+
+    if (sessionId !== state.replyComposerSessionId || state.replyUploadPendingCount > 0 || !state.replyStatus) {
+      return;
+    }
+
+    const successCount = results.filter((result) => result.status === "fulfilled").length;
+    const failures = results.filter((result) => result.status === "rejected");
+
+    if (!failures.length) {
+      state.replyStatus.textContent = successCount > 1
+        ? `已上传 ${successCount} 张图片，已插入回复内容。`
+        : "图片已上传，已插入回复内容。";
+      return;
+    }
+
+    if (!successCount) {
+      state.replyStatus.textContent = failures.length > 1
+        ? `图片上传失败（${failures.length} 张）：${failures.map((item) => item.reason?.message || "未知错误").join("；")}`
+        : `图片上传失败：${failures[0].reason?.message || "未知错误"}`;
+      return;
+    }
+
+    state.replyStatus.textContent = `图片上传完成：${successCount} 张成功，${failures.length} 张失败。`;
+  }
+
+  function insertReplyUploadPlaceholders(files) {
+    if (!state.replyTextarea) {
+      return [];
+    }
+
+    const entries = files.map((file) => buildReplyUploadPlaceholder(file));
+    insertReplyTextareaText(entries.map((entry) => entry.insertedText).join(""));
+    return entries;
+  }
+
+  function buildReplyUploadPlaceholder(file) {
+    const uploadId = `ld-upload-${Date.now()}-${++state.replyUploadSerial}`;
+    const visibleLabel = `[图片上传中：${sanitizeReplyUploadFileName(file.name || "image.png")}]`;
+    const marker = `${REPLY_UPLOAD_MARKER}${uploadId}${REPLY_UPLOAD_MARKER}${visibleLabel}${REPLY_UPLOAD_MARKER}/${uploadId}${REPLY_UPLOAD_MARKER}`;
+
+    return {
+      file,
+      marker,
+      insertedText: `${marker}\n`
+    };
+  }
+
+  function sanitizeReplyUploadFileName(fileName) {
+    return String(fileName || "image.png")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function insertReplyTextareaText(text) {
+    if (!state.replyTextarea) {
+      return;
+    }
+
+    const textarea = state.replyTextarea;
+    const start = Number.isFinite(textarea.selectionStart)
+      ? textarea.selectionStart
+      : textarea.value.length;
+    const end = Number.isFinite(textarea.selectionEnd)
+      ? textarea.selectionEnd
+      : start;
+
+    textarea.focus();
+    textarea.setRangeText(text, start, end, "end");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  async function uploadReplyPasteFile(entry, sessionId) {
+    const controller = new AbortController();
+    addReplyUploadController(controller);
+
+    try {
+      const upload = await createComposerUpload(entry.file, controller.signal, { pasted: true });
+      if (controller.signal.aborted || sessionId !== state.replyComposerSessionId) {
+        return upload;
+      }
+
+      const markdown = buildComposerUploadMarkdown(upload);
+      const inserted = replaceReplyUploadPlaceholder(entry.marker, `${markdown}\n`);
+      if (!inserted) {
+        insertReplyTextareaText(`\n${markdown}\n`);
+      }
+
+      return upload;
+    } catch (error) {
+      if (!controller.signal.aborted && sessionId === state.replyComposerSessionId) {
+        removeReplyUploadPlaceholder(entry.marker);
+      }
+
+      if (controller.signal.aborted) {
+        return null;
+      }
+
+      throw error;
+    } finally {
+      removeReplyUploadController(controller);
+      if (state.replyUploadPendingCount > 0) {
+        state.replyUploadPendingCount -= 1;
+      }
+
+      syncReplyUI();
+      if (sessionId === state.replyComposerSessionId && state.replyUploadPendingCount > 0) {
+        updateReplyUploadStatus();
+      }
+    }
+  }
+
+  function replaceReplyUploadPlaceholder(marker, replacement) {
+    return replaceReplyTextareaText(marker, replacement);
+  }
+
+  function removeReplyUploadPlaceholder(marker) {
+    replaceReplyTextareaText(marker, "");
+  }
+
+  function replaceReplyTextareaText(searchText, replacementText) {
+    if (!state.replyTextarea) {
+      return false;
+    }
+
+    const textarea = state.replyTextarea;
+    const start = textarea.value.indexOf(searchText);
+    if (start === -1) {
+      return false;
+    }
+
+    textarea.setRangeText(
+      replacementText,
+      start,
+      start + searchText.length,
+      "preserve"
+    );
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+  }
+
+  function addReplyUploadController(controller) {
+    state.replyUploadControllers.push(controller);
+  }
+
+  function removeReplyUploadController(controller) {
+    state.replyUploadControllers = state.replyUploadControllers.filter((item) => item !== controller);
+  }
+
+  function cancelReplyUploads() {
+    for (const controller of state.replyUploadControllers) {
+      controller.abort();
+    }
+
+    state.replyUploadControllers = [];
+    state.replyUploadPendingCount = 0;
+  }
+
+  function updateReplyUploadStatus() {
+    if (!state.replyStatus || state.replyUploadPendingCount <= 0) {
+      return;
+    }
+
+    state.replyStatus.textContent = state.replyUploadPendingCount > 1
+      ? `正在上传 ${state.replyUploadPendingCount} 张图片...`
+      : "正在上传图片...";
+  }
+
   async function handleReplySubmit() {
     if (!state.currentTopic || state.isReplySubmitting || !state.replyTextarea || !state.replyStatus) {
+      return;
+    }
+
+    if (state.replyUploadPendingCount > 0) {
+      state.replyStatus.textContent = state.replyUploadPendingCount > 1
+        ? `还有 ${state.replyUploadPendingCount} 张图片正在上传，请稍候再发送。`
+        : "图片还在上传中，请稍候再发送。";
       return;
     }
 
@@ -1962,6 +2262,88 @@
     return data;
   }
 
+  async function createComposerUpload(file, signal, options = {}) {
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) {
+      throw new Error("未找到登录令牌，请刷新页面后重试");
+    }
+
+    const formData = new FormData();
+    formData.set("upload_type", "composer");
+    formData.set("file", file, file.name || "image.png");
+    if (options.pasted) {
+      formData.set("pasted", "true");
+    }
+
+    const response = await fetch(`${location.origin}/uploads.json`, {
+      method: "POST",
+      credentials: "include",
+      signal,
+      headers: {
+        Accept: "application/json",
+        "X-CSRF-Token": csrfToken
+      },
+      body: formData
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("json")
+      ? await response.json()
+      : null;
+
+    if (!response.ok) {
+      const message = Array.isArray(data?.errors) && data.errors.length > 0
+        ? data.errors.join("；")
+        : (data?.message || data?.error || `Unexpected response: ${response.status}`);
+      throw new Error(message);
+    }
+
+    if (!data || typeof data !== "object") {
+      throw new Error(`Unexpected response: ${response.status}`);
+    }
+
+    return data;
+  }
+
+  function buildComposerUploadMarkdown(upload) {
+    const fileName = upload?.original_filename || "image.png";
+    const uploadUrl = upload?.short_url || upload?.url || "";
+    if (!uploadUrl) {
+      throw new Error("上传成功但未返回可用图片地址");
+    }
+
+    if (isImageUploadName(fileName)) {
+      return buildComposerImageMarkdown(upload, uploadUrl);
+    }
+
+    return `[${fileName}|attachment](${uploadUrl})`;
+  }
+
+  function buildComposerImageMarkdown(upload, uploadUrl) {
+    const altText = markdownNameFromFileName(upload?.original_filename || "image.png");
+    const width = Number(upload?.thumbnail_width || upload?.width || 0);
+    const height = Number(upload?.thumbnail_height || upload?.height || 0);
+    const sizeSegment = width > 0 && height > 0
+      ? `|${width}x${height}`
+      : "";
+
+    return `![${altText}${sizeSegment}](${uploadUrl})`;
+  }
+
+  function markdownNameFromFileName(fileName) {
+    const normalized = String(fileName || "").trim();
+    const dotIndex = normalized.lastIndexOf(".");
+    const baseName = dotIndex > 0
+      ? normalized.slice(0, dotIndex)
+      : normalized;
+
+    return (baseName || "image").replace(/[\[\]|]/g, "");
+  }
+
+  function isImageUploadName(fileName) {
+    return /\.(avif|bmp|gif|jpe?g|png|svg|webp)$/i.test(String(fileName || ""));
+  }
+
   function getCsrfToken() {
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
     return token.trim();
@@ -2477,9 +2859,12 @@
   }
 
   function resetReplyComposer() {
+    state.replyComposerSessionId += 1;
+    cancelReplyUploads();
+
     if (state.replyTextarea) {
       state.replyTextarea.value = "";
-      state.replyTextarea.placeholder = "写点什么... 支持 Markdown。Ctrl+Enter 或 Cmd+Enter 可发送";
+      state.replyTextarea.placeholder = buildReplyTextareaPlaceholder();
     }
 
     if (state.replyStatus) {
@@ -2494,7 +2879,7 @@
   function syncReplyUI() {
     const hasTopic = Boolean(state.currentTopic?.id);
     const isTargetedReply = Number.isFinite(state.replyTargetPostNumber);
-
+    const isReplyUploading = state.replyUploadPendingCount > 0;
     const isIframeMode = state.root?.classList.contains(IFRAME_MODE_CLASS);
 
     if (state.replyButton) {
@@ -2507,8 +2892,8 @@
       state.replyTextarea.disabled = !hasTopic || state.isReplySubmitting;
       if (hasTopic) {
         state.replyTextarea.placeholder = isTargetedReply
-          ? `回复 ${state.replyTargetLabel}... 支持 Markdown。Ctrl+Enter 或 Cmd+Enter 可发送`
-          : `回复《${state.currentTopic.title || state.currentFallbackTitle || "当前主题"}》... 支持 Markdown。Ctrl+Enter 或 Cmd+Enter 可发送`;
+          ? buildReplyTextareaPlaceholder(`回复 ${state.replyTargetLabel}`)
+          : buildReplyTextareaPlaceholder(`回复《${state.currentTopic.title || state.currentFallbackTitle || "当前主题"}》`);
       }
     }
 
@@ -2519,13 +2904,23 @@
     }
 
     if (state.replySubmitButton) {
-      state.replySubmitButton.disabled = !hasTopic || state.isReplySubmitting;
-      state.replySubmitButton.textContent = state.isReplySubmitting ? "发送中..." : "发送回复";
+      state.replySubmitButton.disabled = !hasTopic || state.isReplySubmitting || isReplyUploading;
+      state.replySubmitButton.textContent = state.isReplySubmitting
+        ? "发送中..."
+        : (isReplyUploading
+          ? (state.replyUploadPendingCount > 1
+            ? `上传 ${state.replyUploadPendingCount} 张图片中...`
+            : "图片上传中...")
+          : "发送回复");
     }
 
     if (state.replyCancelButton) {
       state.replyCancelButton.disabled = state.isReplySubmitting;
     }
+  }
+
+  function buildReplyTextareaPlaceholder(prefix = "写点什么") {
+    return `${prefix}... 支持 Markdown，可直接粘贴图片自动上传。Ctrl+Enter 或 Cmd+Enter 可发送`;
   }
 
   function syncSettingsUI() {
