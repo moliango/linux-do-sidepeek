@@ -10,19 +10,22 @@
   const IMAGE_PREVIEW_SCALE_MIN = 1;
   const IMAGE_PREVIEW_SCALE_MAX = 4;
   const IMAGE_PREVIEW_SCALE_STEP = 0.2;
+  const POST_BODY_FONT_SIZE_MIN = 13;
+  const POST_BODY_FONT_SIZE_MAX = 18;
   const REPLY_UPLOAD_MARKER = "\u2063";
   const POST_ACTION_TYPE_IDS = {
     like: 2
   };
   const DEFAULT_SETTINGS = {
-    previewMode: "smart",
+    previewMode: "iframe",
     postMode: "all",
+    postBodyFontSize: 15,
     authorFilter: "all",
     replyOrder: "default",
     floatingReplyButton: "off",
-    drawerWidth: "medium",
+    drawerWidth: "narrow",
     drawerWidthCustom: 720,
-    drawerMode: "push"
+    drawerMode: "overlay"
   };
   const DRAWER_WIDTHS = {
     narrow: "clamp(320px, 34vw, 680px)",
@@ -106,6 +109,7 @@
     openInTab: null,
     settingsPanel: null,
     settingsCard: null,
+    postBodyFontSizeValue: null,
     settingsCloseButton: null,
     settingsToggle: null,
     latestRepliesRefreshButton: null,
@@ -207,6 +211,21 @@
               </select>
             </label>
             <label class="ld-setting-field">
+              <div class="ld-setting-row">
+                <span class="ld-setting-label">正文字号</span>
+                <span class="ld-setting-value" data-setting-value="postBodyFontSize">15px</span>
+              </div>
+              <input
+                class="ld-setting-range"
+                type="range"
+                min="${POST_BODY_FONT_SIZE_MIN}"
+                max="${POST_BODY_FONT_SIZE_MAX}"
+                step="1"
+                data-setting="postBodyFontSize"
+              />
+              <span class="ld-setting-hint">只调整帖子正文和代码字号，不影响标题和按钮</span>
+            </label>
+            <label class="ld-setting-field">
               <span class="ld-setting-label">作者过滤</span>
               <select class="ld-setting-control" data-setting="authorFilter">
                 <option value="all">全部作者</option>
@@ -305,6 +324,7 @@
     state.openInTab = root.querySelector(".ld-drawer-link");
     state.settingsPanel = root.querySelector(".ld-drawer-settings");
     state.settingsCard = root.querySelector(".ld-drawer-settings-card");
+    state.postBodyFontSizeValue = root.querySelector('[data-setting-value="postBodyFontSize"]');
     state.settingsCloseButton = root.querySelector(".ld-settings-close");
     state.settingsToggle = root.querySelector(".ld-drawer-settings-toggle");
     state.latestRepliesRefreshButton = root.querySelector(".ld-drawer-refresh");
@@ -328,12 +348,14 @@
     root.addEventListener("wheel", handleDrawerRootWheel, { passive: false });
     state.drawerBody.addEventListener("scroll", handleDrawerBodyScroll, { passive: true });
     state.settingsPanel.addEventListener("click", handleSettingsPanelClick);
+    state.settingsPanel.addEventListener("input", handleSettingsInput);
     state.settingsPanel.addEventListener("change", handleSettingsChange);
     state.settingsCloseButton.addEventListener("click", () => setSettingsPanelOpen(false));
     state.settingsPanel.querySelector(".ld-settings-reset").addEventListener("click", resetSettings);
     state.resizeHandle.addEventListener("pointerdown", startDrawerResize);
 
     syncSettingsUI();
+    applyPostBodyFontSize();
     applyDrawerWidth();
     syncNavigationState();
     syncLatestRepliesRefreshUI();
@@ -3409,6 +3431,7 @@
         settings.floatingReplyButton = DEFAULT_SETTINGS.floatingReplyButton;
       }
 
+      settings.postBodyFontSize = clampPostBodyFontSize(settings.postBodyFontSize);
       settings.drawerWidthCustom = clampDrawerWidth(settings.drawerWidthCustom);
       return settings;
     } catch {
@@ -3504,8 +3527,16 @@
     for (const control of state.settingsPanel.querySelectorAll("[data-setting]")) {
       const key = control.dataset.setting;
       if (key && key in state.settings) {
-        control.value = state.settings[key];
+        control.value = String(state.settings[key]);
       }
+    }
+
+    syncPostBodyFontSizeValue();
+  }
+
+  function syncPostBodyFontSizeValue() {
+    if (state.postBodyFontSizeValue) {
+      state.postBodyFontSizeValue.textContent = `${clampPostBodyFontSize(state.settings.postBodyFontSize)}px`;
     }
   }
 
@@ -3535,9 +3566,25 @@
     syncReplyUI();
   }
 
+  function handleSettingsInput(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement) || target.type !== "range") {
+      return;
+    }
+
+    const key = target.dataset.setting;
+    if (key !== "postBodyFontSize") {
+      return;
+    }
+
+    state.settings.postBodyFontSize = clampPostBodyFontSize(target.value);
+    target.value = String(state.settings.postBodyFontSize);
+    applyPostBodyFontSize();
+  }
+
   function handleSettingsChange(event) {
     const target = event.target;
-    if (!(target instanceof HTMLSelectElement)) {
+    if (!(target instanceof HTMLSelectElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
 
@@ -3546,8 +3593,16 @@
       return;
     }
 
-    state.settings[key] = target.value;
+    state.settings[key] = key === "postBodyFontSize"
+      ? clampPostBodyFontSize(target.value)
+      : target.value;
+    target.value = String(state.settings[key]);
     saveSettings();
+
+    if (key === "postBodyFontSize") {
+      applyPostBodyFontSize();
+      return;
+    }
 
     if (key === "drawerWidth") {
       applyDrawerWidth();
@@ -3576,6 +3631,7 @@
     state.settings = { ...DEFAULT_SETTINGS };
     syncSettingsUI();
     saveSettings();
+    applyPostBodyFontSize();
     applyDrawerWidth();
     applyDrawerMode();
     syncReplyUI();
@@ -3597,6 +3653,14 @@
     scheduleTopicTrackerPositionSync();
   }
 
+  function applyPostBodyFontSize() {
+    document.documentElement.style.setProperty(
+      "--ld-post-body-font-size",
+      `${clampPostBodyFontSize(state.settings.postBodyFontSize)}px`
+    );
+    syncPostBodyFontSizeValue();
+  }
+
   function applyDrawerMode() {
     const isOverlay = state.settings.drawerMode === "overlay";
     document.body.classList.toggle("ld-drawer-mode-overlay", isOverlay);
@@ -3611,6 +3675,16 @@
     }
 
     return Math.min(Math.max(Math.round(numeric), 320), maxWidth);
+  }
+
+  function clampPostBodyFontSize(value) {
+    const numeric = Number(value);
+
+    if (!Number.isFinite(numeric)) {
+      return DEFAULT_SETTINGS.postBodyFontSize;
+    }
+
+    return Math.min(Math.max(Math.round(numeric), POST_BODY_FONT_SIZE_MIN), POST_BODY_FONT_SIZE_MAX);
   }
 
   function startDrawerResize(event) {

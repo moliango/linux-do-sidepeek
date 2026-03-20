@@ -21,6 +21,7 @@ ALL_CASES=(
   "AGENT-CHROME-013"
   "AGENT-CHROME-014"
   "AGENT-CHROME-015"
+  "AGENT-CHROME-016"
 )
 
 CASES=("${DEFAULT_CASES[@]}")
@@ -469,22 +470,37 @@ set_setting_value() {
 (() => {
   const key = $key_json;
   const value = $value_json;
-  const select = document.querySelector(\`#ld-drawer-settings [data-setting="\${key}"]\`);
-  if (!(select instanceof HTMLSelectElement)) {
+  const control = document.querySelector(\`#ld-drawer-settings [data-setting="\${key}"]\`);
+  if (!(control instanceof HTMLSelectElement) && !(control instanceof HTMLInputElement)) {
     return { ok: false, reason: "setting-not-found", key };
   }
 
-  const hasOption = Array.from(select.options).some((option) => option.value === value);
-  if (!hasOption) {
-    return { ok: false, reason: "option-not-found", key, value };
+  if (control instanceof HTMLSelectElement) {
+    const hasOption = Array.from(control.options).some((option) => option.value === value);
+    if (!hasOption) {
+      return { ok: false, reason: "option-not-found", key, value };
+    }
+
+    if (control.value === value) {
+      return { ok: true, changed: false, key, value };
+    }
+
+    control.value = value;
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+    return { ok: true, changed: true, key, value };
   }
 
-  if (select.value === value) {
+  if (control.type !== "range") {
+    return { ok: false, reason: "unsupported-input-type", key, inputType: control.type || "text" };
+  }
+
+  if (control.value === value) {
     return { ok: true, changed: false, key, value };
   }
 
-  select.value = value;
-  select.dispatchEvent(new Event("change", { bubbles: true }));
+  control.value = value;
+  control.dispatchEvent(new Event("input", { bubbles: true }));
+  control.dispatchEvent(new Event("change", { bubbles: true }));
   return { ok: true, changed: true, key, value };
 })()
 EOF
@@ -622,6 +638,29 @@ EOF
   ab_eval "$script"
 }
 
+post_body_font_state() {
+  local script
+  script=$(cat <<'EOF'
+(() => {
+  const body = document.querySelector("#ld-drawer-root .ld-post-body");
+  const control = document.querySelector('#ld-drawer-settings [data-setting="postBodyFontSize"]');
+  const value = document.querySelector('#ld-drawer-settings [data-setting-value="postBodyFontSize"]');
+  const code = document.querySelector("#ld-drawer-root .ld-post-body pre, #ld-drawer-root .ld-post-body code");
+  return {
+    pageOpen: document.body.classList.contains("ld-drawer-page-open"),
+    bodyExists: body instanceof HTMLElement,
+    bodyFontSize: body ? Math.round(parseFloat(getComputedStyle(body).fontSize) || 0) : null,
+    codeExists: code instanceof HTMLElement,
+    codeFontSize: code ? Math.round(parseFloat(getComputedStyle(code).fontSize) || 0) : null,
+    controlValue: control?.value || null,
+    valueText: value?.textContent?.trim() || null
+  };
+})()
+EOF
+)
+  ab_eval "$script"
+}
+
 click_reply_trigger() {
   local target=$1
   local selector_json script
@@ -734,22 +773,39 @@ run_001() {
 
 run_002() {
   local case_id="AGENT-CHROME-002"
-  local state
+  local original_settings original_preview preview_result state
   open_topic_by_index 0 >/dev/null || {
     record_fail "$case_id" "无法打开抽屉"
     return 0
   }
+
+  original_settings=$(settings_values)
+  original_preview=$(echo "$original_settings" | jq -r '.previewMode // empty')
+  if [ -z "$original_preview" ]; then
+    record_fail "$case_id" "无法读取当前预览模式"
+    return 0
+  fi
+
+  preview_result=$(set_setting_value previewMode iframe)
+  if [ "$(echo "$preview_result" | jq -r '.ok')" != "true" ]; then
+    record_fail "$case_id" "无法切到整页模式: $preview_result"
+    return 0
+  fi
+  ab wait 1200 >/dev/null
+  ensure_settings_closed
   state=$(drawer_state)
+
+  set_setting_value previewMode "$original_preview" >/dev/null || true
 
   if [ "$(echo "$state" | jq -r '.prevText // empty')" = "上一帖" ] \
     && [ "$(echo "$state" | jq -r '.nextText // empty')" = "下一帖" ] \
     && [ "$(echo "$state" | jq -r '.settingsText // empty')" = "选项" ] \
     && [ "$(echo "$state" | jq -r '.replyText // empty')" = "回复主题" ] \
-    && [ "$(echo "$state" | jq -r '.replyHidden')" = "false" ] \
+    && [ "$(echo "$state" | jq -r '.replyHidden')" = "true" ] \
     && [ "$(echo "$state" | jq -r '.newTabText // empty')" = "新标签打开" ]; then
-    record_pass "$case_id" "toolbar ready"
+    record_pass "$case_id" "toolbar ready in iframe mode"
   else
-    record_fail "$case_id" "toolbar incomplete"
+    record_fail "$case_id" "toolbar incomplete: $(echo "$state" | jq -c '{prevText, nextText, settingsText, replyText, replyHidden, newTabText}')"
   fi
 }
 
@@ -1130,7 +1186,7 @@ run_013() {
 
 run_014() {
   local case_id="AGENT-CHROME-014"
-  local original_settings original_floating off_result off_state on_result on_state settings_open_state click_result panel_state
+  local original_settings original_floating original_preview preview_result off_result off_state on_result on_state settings_open_state click_result panel_state
   local passed=0
   local detail=""
 
@@ -1141,13 +1197,22 @@ run_014() {
 
   original_settings=$(settings_values)
   original_floating=$(echo "$original_settings" | jq -r '.floatingReplyButton // empty')
-  if [ -z "$original_floating" ]; then
-    record_fail "$case_id" "无法读取悬浮回复入口设置"
+  original_preview=$(echo "$original_settings" | jq -r '.previewMode // empty')
+  if [ -z "$original_floating" ] || [ -z "$original_preview" ]; then
+    record_fail "$case_id" "无法读取当前设置"
     return 0
   fi
 
+  preview_result=$(set_setting_value previewMode smart)
+  if [ "$(echo "$preview_result" | jq -r '.ok')" != "true" ]; then
+    record_fail "$case_id" "无法切到智能预览: $preview_result"
+    return 0
+  fi
+  ab wait 1200 >/dev/null
+
   off_result=$(set_setting_value floatingReplyButton off)
   if [ "$(echo "$off_result" | jq -r '.ok')" != "true" ]; then
+    set_setting_value previewMode "$original_preview" >/dev/null || true
     record_fail "$case_id" "无法关闭悬浮回复入口: $off_result"
     return 0
   fi
@@ -1175,6 +1240,7 @@ run_014() {
   close_reply_panel_if_open >/dev/null || true
   ab wait 400 >/dev/null
   set_setting_value floatingReplyButton "$original_floating" >/dev/null || true
+  set_setting_value previewMode "$original_preview" >/dev/null || true
   ab wait 800 >/dev/null
   ensure_settings_closed
 
@@ -1230,6 +1296,66 @@ run_015() {
   fi
 }
 
+run_016() {
+  local case_id="AGENT-CHROME-016"
+  local original_settings original_value original_preview preview_result target_value
+  local before set_result after
+
+  open_topic_by_index 0 >/dev/null || {
+    record_fail "$case_id" "无法打开抽屉"
+    return 0
+  }
+
+  original_settings=$(settings_values)
+  original_value=$(echo "$original_settings" | jq -r '.postBodyFontSize // empty')
+  original_preview=$(echo "$original_settings" | jq -r '.previewMode // empty')
+  if [ -z "$original_value" ] || [ -z "$original_preview" ]; then
+    record_fail "$case_id" "无法读取当前设置"
+    return 0
+  fi
+
+  preview_result=$(set_setting_value previewMode smart)
+  if [ "$(echo "$preview_result" | jq -r '.ok')" != "true" ]; then
+    record_fail "$case_id" "无法切到智能预览: $preview_result"
+    return 0
+  fi
+  ab wait 1200 >/dev/null
+  ensure_settings_open
+  before=$(post_body_font_state)
+  target_value=18
+  if [ "$original_value" = "18" ]; then
+    target_value=13
+  fi
+
+  set_result=$(set_setting_value postBodyFontSize "$target_value")
+  if [ "$(echo "$set_result" | jq -r '.ok')" != "true" ]; then
+    ensure_settings_closed
+    record_fail "$case_id" "无法设置正文字号: $set_result"
+    return 0
+  fi
+
+  ab wait 200 >/dev/null
+  after=$(post_body_font_state)
+
+  set_setting_value postBodyFontSize "$original_value" >/dev/null || true
+  set_setting_value previewMode "$original_preview" >/dev/null || true
+  ab wait 200 >/dev/null
+  ensure_settings_closed
+
+  if [ "$(echo "$before" | jq -r '.pageOpen')" = "true" ] \
+    && [ "$(echo "$before" | jq -r '.bodyExists')" = "true" ] \
+    && [ "$(echo "$after" | jq -r '.bodyExists')" = "true" ] \
+    && [ "$(echo "$after" | jq -r '.controlValue // empty')" = "$target_value" ] \
+    && [ "$(echo "$after" | jq -r '.valueText // empty')" = "${target_value}px" ] \
+    && [ "$(echo "$after" | jq -r '.bodyFontSize')" = "$target_value" ] \
+    && { [ "$(echo "$after" | jq -r '.codeExists')" != "true" ] || [ "$(echo "$after" | jq -r '.codeFontSize')" = "$((target_value - 1))" ]; } \
+    && [ "$(echo "$before" | jq -r '.bodyFontSize')" != "$(echo "$after" | jq -r '.bodyFontSize')" ]; then
+    record_pass "$case_id" "before=$(echo "$before" | jq -c '{bodyFontSize, codeExists, codeFontSize, controlValue, valueText}') after=$(echo "$after" | jq -c '{bodyFontSize, codeExists, codeFontSize, controlValue, valueText}')"
+  else
+    record_fail "$case_id" "before=$(echo "$before" | jq -c '{pageOpen, bodyExists, bodyFontSize, codeExists, codeFontSize, controlValue, valueText}') after=$(echo "$after" | jq -c '{pageOpen, bodyExists, bodyFontSize, codeExists, codeFontSize, controlValue, valueText}') target=$target_value"
+  fi
+}
+
 run_case() {
   local case_id=$1
   case "$case_id" in
@@ -1245,6 +1371,7 @@ run_case() {
     AGENT-CHROME-013) run_013 ;;
     AGENT-CHROME-014) run_014 ;;
     AGENT-CHROME-015) run_015 ;;
+    AGENT-CHROME-016) run_016 ;;
     *)
       record_fail "$case_id" "未知用例 ID"
       ;;

@@ -1,5 +1,6 @@
 :root {
   --ld-drawer-width: clamp(360px, 42vw, 920px);
+  --ld-post-body-font-size: 15px;
   --ld-image-preview-scale: 1;
   --ld-topic-tracker-left: 50vw;
   --ld-topic-tracker-top: 112px;
@@ -350,9 +351,22 @@ body.ld-drawer-page-open #ld-drawer-root {
   gap: 6px;
 }
 
+#ld-drawer-root .ld-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 #ld-drawer-root .ld-setting-label {
   font-size: 12px;
   color: var(--primary-medium, rgba(15, 23, 42, 0.64));
+}
+
+#ld-drawer-root .ld-setting-value {
+  color: var(--primary-medium, rgba(15, 23, 42, 0.72));
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 #ld-drawer-root .ld-setting-hint {
@@ -369,6 +383,19 @@ body.ld-drawer-page-open #ld-drawer-root {
   color: inherit;
   font-size: 13px;
   padding: 10px 12px;
+}
+
+#ld-drawer-root .ld-setting-range {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--tertiary, #3b82f6);
+  cursor: pointer;
+}
+
+#ld-drawer-root .ld-setting-range:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--tertiary, #3b82f6) 24%, transparent);
+  outline-offset: 3px;
+  border-radius: 999px;
 }
 
 #ld-drawer-root .ld-settings-reset {
@@ -707,7 +734,7 @@ body.ld-drawer-page-open #ld-drawer-root {
 #ld-drawer-root .ld-post-body {
   padding: 16px;
   line-height: 1.72;
-  font-size: 14px;
+  font-size: var(--ld-post-body-font-size, 14px);
 }
 
 #ld-drawer-root .ld-post-actions {
@@ -790,7 +817,7 @@ body.ld-drawer-page-open #ld-drawer-root {
 
 #ld-drawer-root .ld-post-body pre,
 #ld-drawer-root .ld-post-body code {
-  font-size: 13px;
+  font-size: max(12px, calc(var(--ld-post-body-font-size, 14px) - 1px));
 }
 
 #ld-drawer-root .ld-post-body pre {
