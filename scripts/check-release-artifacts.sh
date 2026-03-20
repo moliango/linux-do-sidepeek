@@ -47,4 +47,10 @@ unzip -p "$FIREFOX_XPI" manifest.json | jq -e '
   | type == "string" and length > 0
 ' >/dev/null
 
+echo "[artifact-check] firefox data collection permissions"
+unzip -p "$FIREFOX_XPI" manifest.json | jq -e '
+  .browser_specific_settings.gecko.data_collection_permissions.required
+  | type == "array" and . == ["none"]
+' >/dev/null
+
 echo "[artifact-check] ok"

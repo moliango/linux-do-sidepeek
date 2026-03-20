@@ -222,9 +222,19 @@ click_topic_link_by_index() {
     };
   }).filter(Boolean);
 
-  const selectedCandidates = mode === "untargeted"
-    ? candidates.filter((candidate) => !candidate.targeted)
-    : candidates;
+  const selectedCandidates = (() => {
+    if (mode === "untargeted") {
+      return candidates.filter((candidate) => !candidate.targeted);
+    }
+
+    if (mode === "refreshable") {
+      return candidates.filter((candidate) => !candidate.targeted || (
+        candidate.targetSegments.length === 1 && candidate.targetSegments[0] === "last"
+      ));
+    }
+
+    return candidates;
+  })();
 
   const candidate = selectedCandidates[$index];
   if (!candidate) {
@@ -304,6 +314,28 @@ click_settings_toggle() {
 EOF
 )
   ab_eval "$script"
+}
+
+wait_for_refresh_idle() {
+  local attempts=0
+  local state='{}'
+
+  while [ "$attempts" -lt 20 ]; do
+    state=$(refresh_button_state)
+    if [ "$(echo "$state" | jq -r '.exists')" = "true" ] \
+      && [ "$(echo "$state" | jq -r '.hidden')" = "false" ] \
+      && [ "$(echo "$state" | jq -r '.disabled')" = "false" ] \
+      && [ "$(echo "$state" | jq -r '.text // empty')" = "刷新" ]; then
+      echo "$state"
+      return 0
+    fi
+
+    ab wait 300 >/dev/null
+    attempts=$((attempts + 1))
+  done
+
+  echo "$state"
+  return 1
 }
 
 set_overlay_mode() {
@@ -519,28 +551,6 @@ refresh_button_state() {
 EOF
 )
   ab_eval "$script"
-}
-
-wait_for_refresh_idle() {
-  local attempts=0
-  local state='{}'
-
-  while [ "$attempts" -lt 20 ]; do
-    state=$(refresh_button_state)
-    if [ "$(echo "$state" | jq -r '.exists')" = "true" ] \
-      && [ "$(echo "$state" | jq -r '.hidden')" = "false" ] \
-      && [ "$(echo "$state" | jq -r '.disabled')" = "false" ] \
-      && [ "$(echo "$state" | jq -r '.text // empty')" = "刷新" ]; then
-      echo "$state"
-      return 0
-    fi
-
-    ab wait 300 >/dev/null
-    attempts=$((attempts + 1))
-  done
-
-  echo "$state"
-  return 1
 }
 
 reply_entry_state() {
@@ -916,9 +926,9 @@ run_010() {
   local passed=0
   local detail=""
 
-  if ! open_result=$(open_topic_by_index 0 untargeted); then
+  if ! open_result=$(open_topic_by_index 0 refreshable); then
     if [ "$(echo "$open_result" | jq -r '.reason // empty')" = "topic-not-found-after-filter" ]; then
-      record_skip "$case_id" "当前列表页没有非 targeted 主题链接，跳过刷新按钮断言"
+      record_skip "$case_id" "当前列表页没有可用于刷新断言的普通主题或 /last 主题链接"
     else
       record_fail "$case_id" "无法打开抽屉: $open_result"
     fi
@@ -937,7 +947,12 @@ run_010() {
     return 0
   }
 
-  before=$(refresh_button_state)
+  if ! before=$(wait_for_refresh_idle); then
+    restore_settings_subset "$original_settings"
+    record_fail "$case_id" "刷新按钮在切换场景后未进入可点击状态: $(echo "$before" | jq -c '{exists, hidden, disabled, text}')"
+    return 0
+  fi
+
   click=$(click_refresh_button)
   if ! after=$(wait_for_refresh_idle); then
     :

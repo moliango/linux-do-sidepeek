@@ -51,6 +51,7 @@ bash scripts/check-release-artifacts.sh /tmp/linux-do-sidepeek-dist/linux-do-sid
 1. Chrome ZIP 与 Firefox XPI 能正常产出
 2. 产物中包含 `manifest.json`、`src/content.js`、`src/content.css`
 3. Firefox 产物中的 `browser_specific_settings.gecko.id` 存在
+4. Firefox 产物中的 `browser_specific_settings.gecko.data_collection_permissions.required` 为 `["none"]`
 
 ### Tier 2：agent 辅助 Chrome smoke
 

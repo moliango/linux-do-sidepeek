@@ -94,6 +94,7 @@ bash scripts/agent-smoke.sh --cdp-port 9222
 - 验证 Chrome ZIP 与 Firefox XPI 能被正常产出
 - 验证产物中包含 `manifest.json`、`src/content.js`、`src/content.css`
 - 验证 Firefox 产物中的 `browser_specific_settings.gecko.id` 存在
+- 验证 Firefox 产物中的 `browser_specific_settings.gecko.data_collection_permissions.required` 为 `["none"]`
 - 验证默认批量 agent Chrome smoke 用例
 
 对应 CI：

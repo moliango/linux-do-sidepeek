@@ -5,7 +5,12 @@
   "description": "Preview Linux.do topics in a right-side drawer without leaving the current page.",
   "browser_specific_settings": {
     "gecko": {
-      "id": "@linux-do-sidepeek"
+      "id": "@linux-do-sidepeek",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
     }
   },
   "host_permissions": [

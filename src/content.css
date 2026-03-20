@@ -385,20 +385,40 @@ body.ld-drawer-page-open #ld-drawer-root {
   scrollbar-color: color-mix(in srgb, var(--tertiary, #3b82f6) 40%, transparent) transparent;
 }
 
-#ld-drawer-root .ld-drawer-body::-webkit-scrollbar {
-  width: 6px;
+#ld-drawer-root .ld-drawer-settings-card,
+#ld-drawer-root .ld-drawer-reply-panel {
+  overscroll-behavior: contain;
 }
 
-#ld-drawer-root .ld-drawer-body::-webkit-scrollbar-track {
+#ld-drawer-root .ld-drawer-settings-card,
+#ld-drawer-root .ld-drawer-reply-panel {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--tertiary, #3b82f6) 40%, transparent) transparent;
+}
+
+#ld-drawer-root .ld-drawer-body::-webkit-scrollbar,
+#ld-drawer-root .ld-drawer-settings-card::-webkit-scrollbar,
+#ld-drawer-root .ld-drawer-reply-panel::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+#ld-drawer-root .ld-drawer-body::-webkit-scrollbar-track,
+#ld-drawer-root .ld-drawer-settings-card::-webkit-scrollbar-track,
+#ld-drawer-root .ld-drawer-reply-panel::-webkit-scrollbar-track {
   background: transparent;
 }
 
-#ld-drawer-root .ld-drawer-body::-webkit-scrollbar-thumb {
+#ld-drawer-root .ld-drawer-body::-webkit-scrollbar-thumb,
+#ld-drawer-root .ld-drawer-settings-card::-webkit-scrollbar-thumb,
+#ld-drawer-root .ld-drawer-reply-panel::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--tertiary, #3b82f6) 40%, transparent);
   border-radius: 999px;
 }
 
-#ld-drawer-root .ld-drawer-body::-webkit-scrollbar-thumb:hover {
+#ld-drawer-root .ld-drawer-body::-webkit-scrollbar-thumb:hover,
+#ld-drawer-root .ld-drawer-settings-card::-webkit-scrollbar-thumb:hover,
+#ld-drawer-root .ld-drawer-reply-panel::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--tertiary, #3b82f6) 64%, transparent);
 }
 
