@@ -1,5 +1,6 @@
 (function () {
   const ROOT_ID = "ld-drawer-root";
+  const IMAGE_PREVIEW_ROOT_ID = "ld-image-preview-root";
   const PAGE_OPEN_CLASS = "ld-drawer-page-open";
   const PAGE_IFRAME_OPEN_CLASS = "ld-drawer-page-iframe-open";
   const ACTIVE_LINK_CLASS = "ld-drawer-topic-link-active";
@@ -102,6 +103,7 @@
     replySubmitButton: null,
     replyCancelButton: null,
     replyStatus: null,
+    imagePreviewRoot: null,
     imagePreview: null,
     imagePreviewImage: null,
     imagePreviewCloseButton: null,
@@ -296,16 +298,22 @@
             <button class="ld-reply-action ld-reply-action-primary" type="button" data-action="submit">发送回复</button>
           </div>
         </div>
-        <div class="ld-image-preview" hidden aria-hidden="true">
-          <button class="ld-image-preview-close" type="button" aria-label="关闭图片预览">关闭</button>
-          <div class="ld-image-preview-stage">
-            <img class="ld-image-preview-image" alt="图片预览" />
-          </div>
+      </div>
+    `;
+
+    const imagePreviewRoot = document.createElement("div");
+    imagePreviewRoot.id = IMAGE_PREVIEW_ROOT_ID;
+    imagePreviewRoot.setAttribute("aria-hidden", "true");
+    imagePreviewRoot.innerHTML = `
+      <div class="ld-image-preview" hidden aria-hidden="true">
+        <button class="ld-image-preview-close" type="button" aria-label="关闭图片预览">关闭</button>
+        <div class="ld-image-preview-stage">
+          <img class="ld-image-preview-image" alt="图片预览" />
         </div>
       </div>
     `;
 
-    document.body.appendChild(root);
+    document.body.append(root, imagePreviewRoot);
 
     state.root = root;
     state.header = root.querySelector(".ld-drawer-header");
@@ -321,9 +329,10 @@
     state.replySubmitButton = root.querySelector('[data-action="submit"]');
     state.replyCancelButton = root.querySelector('[data-action="cancel"]');
     state.replyStatus = root.querySelector(".ld-reply-status");
-    state.imagePreview = root.querySelector(".ld-image-preview");
-    state.imagePreviewImage = root.querySelector(".ld-image-preview-image");
-    state.imagePreviewCloseButton = root.querySelector(".ld-image-preview-close");
+    state.imagePreviewRoot = imagePreviewRoot;
+    state.imagePreview = imagePreviewRoot.querySelector(".ld-image-preview");
+    state.imagePreviewImage = imagePreviewRoot.querySelector(".ld-image-preview-image");
+    state.imagePreviewCloseButton = imagePreviewRoot.querySelector(".ld-image-preview-close");
     state.openInTab = root.querySelector(".ld-drawer-link");
     state.settingsPanel = root.querySelector(".ld-drawer-settings");
     state.settingsCard = root.querySelector(".ld-drawer-settings-card");
@@ -352,6 +361,8 @@
     state.replyTextarea.addEventListener("paste", handleReplyTextareaPaste);
     root.addEventListener("click", handleDrawerRootClick);
     root.addEventListener("wheel", handleDrawerRootWheel, { passive: false });
+    imagePreviewRoot.addEventListener("click", handleImagePreviewClick);
+    imagePreviewRoot.addEventListener("wheel", handleImagePreviewWheel, { passive: false });
     state.drawerBody.addEventListener("scroll", handleDrawerBodyScroll, { passive: true });
     state.settingsPanel.addEventListener("click", handleSettingsPanelClick);
     state.settingsPanel.addEventListener("input", handleSettingsInput);
@@ -390,6 +401,10 @@
 
     const target = event.target;
     if (!(target instanceof Element)) {
+      return;
+    }
+
+    if (!state.imagePreview?.hidden && target.closest(`#${IMAGE_PREVIEW_ROOT_ID}`)) {
       return;
     }
 
@@ -2087,14 +2102,6 @@
       return;
     }
 
-    if (!state.imagePreview?.hidden) {
-      if (target.closest(".ld-image-preview-close") || !target.closest(".ld-image-preview-image")) {
-        event.preventDefault();
-        closeImagePreview();
-      }
-      return;
-    }
-
     const image = target.closest(".ld-post-body img");
     if (!(image instanceof HTMLImageElement)) {
       return;
@@ -2105,8 +2112,23 @@
     openImagePreview(image);
   }
 
+  function handleImagePreviewClick(event) {
+    if (state.imagePreview?.hidden) {
+      return;
+    }
+
+    const target = event.target;
+    if (!(target instanceof Element) || !target.closest(".ld-image-preview")) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    closeImagePreview();
+  }
+
   function openImagePreview(image) {
-    if (!state.imagePreview || !state.imagePreviewImage) {
+    if (!state.imagePreviewRoot || !state.imagePreview || !state.imagePreviewImage) {
       return;
     }
 
@@ -2119,6 +2141,7 @@
     state.imagePreviewImage.src = previewSrc;
     state.imagePreviewImage.alt = image.alt || "图片预览";
     state.imagePreviewImage.classList.remove("is-ready");
+    state.imagePreviewRoot.setAttribute("aria-hidden", "false");
     state.imagePreview.hidden = false;
     state.imagePreview.setAttribute("aria-hidden", "false");
     if (state.imagePreviewImage.complete) {
@@ -2131,10 +2154,11 @@
   }
 
   function closeImagePreview() {
-    if (!state.imagePreview || !state.imagePreviewImage) {
+    if (!state.imagePreviewRoot || !state.imagePreview || !state.imagePreviewImage) {
       return;
     }
 
+    state.imagePreviewRoot.setAttribute("aria-hidden", "true");
     state.imagePreview.hidden = true;
     state.imagePreview.setAttribute("aria-hidden", "true");
     resetImagePreviewScale();
@@ -2147,26 +2171,38 @@
     state.imagePreviewImage?.classList.add("is-ready");
   }
 
-  function handleDrawerRootWheel(event) {
+  function handleImagePreviewWheel(event) {
+    if (state.imagePreview?.hidden) {
+      return;
+    }
+
     const target = event.target;
     if (!(target instanceof Element)) {
       return;
     }
 
-    if (!state.imagePreview?.hidden && target.closest(".ld-image-preview-stage")) {
-      event.preventDefault();
+    event.preventDefault();
 
-      const nextScale = clampImagePreviewScale(
-        state.imagePreviewScale + (event.deltaY < 0 ? IMAGE_PREVIEW_SCALE_STEP : -IMAGE_PREVIEW_SCALE_STEP)
-      );
+    if (!target.closest(".ld-image-preview-stage")) {
+      return;
+    }
 
-      if (nextScale === state.imagePreviewScale) {
-        return;
-      }
+    const nextScale = clampImagePreviewScale(
+      state.imagePreviewScale + (event.deltaY < 0 ? IMAGE_PREVIEW_SCALE_STEP : -IMAGE_PREVIEW_SCALE_STEP)
+    );
 
-      updateImagePreviewTransformOrigin(event.clientX, event.clientY);
-      state.imagePreviewScale = nextScale;
-      applyImagePreviewScale();
+    if (nextScale === state.imagePreviewScale) {
+      return;
+    }
+
+    updateImagePreviewTransformOrigin(event.clientX, event.clientY);
+    state.imagePreviewScale = nextScale;
+    applyImagePreviewScale();
+  }
+
+  function handleDrawerRootWheel(event) {
+    const target = event.target;
+    if (!(target instanceof Element)) {
       return;
     }
 
