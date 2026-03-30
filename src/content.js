@@ -17,6 +17,122 @@
   const POST_ACTION_TYPE_IDS = {
     like: 2
   };
+  const REPLY_EMOJI_CATEGORIES = [
+    { id: "smileys", label: "笑脸和情感", icon: "😀" },
+    { id: "people", label: "人物和手势", icon: "🙌" },
+    { id: "nature", label: "动物和自然", icon: "🌿" },
+    { id: "food", label: "食物和饮品", icon: "🍇" },
+    { id: "activities", label: "活动", icon: "⚽" },
+    { id: "travel", label: "旅行和地点", icon: "🌍" },
+    { id: "objects", label: "物品", icon: "💡" },
+    { id: "symbols", label: "符号", icon: "❤️" }
+  ];
+  const REPLY_REMOTE_EMOJI_GROUP_META = {
+    favorites: { label: "常用", icon: "⭐" },
+    "smileys_&_emotion": { label: "笑脸和情感", icon: "😀" },
+    "people_&_body": { label: "人物和手势", icon: "🙌" },
+    "animals_&_nature": { label: "动物和自然", icon: "🐵" },
+    "food_&_drink": { label: "食物和饮品", icon: "🍇" },
+    "travel_&_places": { label: "旅行和地点", icon: "🌍" },
+    activities: { label: "活动", icon: "⚽" },
+    objects: { label: "物品", icon: "💡" },
+    symbols: { label: "符号", icon: "❤️" },
+    flags: { label: "旗帜", icon: "🏳️" },
+    custom: { label: "自定义", icon: "✨" }
+  };
+  const REPLY_REMOTE_EMOJI_GROUP_ORDER = [
+    "favorites",
+    "smileys_&_emotion",
+    "people_&_body",
+    "animals_&_nature",
+    "food_&_drink",
+    "travel_&_places",
+    "activities",
+    "objects",
+    "symbols",
+    "flags",
+    "custom"
+  ];
+  const REPLY_EMOJIS = [
+    { emoji: "😀", alias: "grinning_face", category: "smileys", keywords: ["grinning", "face", "smile", "happy", "开心", "笑"] },
+    { emoji: "😃", alias: "grinning_face_with_big_eyes", category: "smileys", keywords: ["grinning", "big eyes", "face", "笑脸"] },
+    { emoji: "😄", alias: "grinning_face_with_smiling_eyes", category: "smileys", keywords: ["grinning", "smiling eyes", "face", "开心"] },
+    { emoji: "😁", alias: "beaming_face_with_smiling_eyes", category: "smileys", keywords: ["beaming", "smile", "grin", "大笑"] },
+    { emoji: "😆", alias: "grinning_squinting_face", category: "smileys", keywords: ["squinting", "grinning", "laugh", "咧嘴笑"] },
+    { emoji: "🤣", alias: "rolling_on_the_floor_laughing", category: "smileys", keywords: ["rolling", "floor", "laughing", "lol", "笑哭"] },
+    { emoji: "😂", alias: "face_with_tears_of_joy", category: "smileys", keywords: ["tears", "joy", "laugh", "喜极而泣", "笑哭"] },
+    { emoji: "🙂", alias: "slightly_smiling_face", category: "smileys", keywords: ["slightly", "smiling", "face", "微笑"] },
+    { emoji: "😉", alias: "winking_face", category: "smileys", keywords: ["winking", "face", "眨眼"] },
+    { emoji: "😊", alias: "smiling_face_with_smiling_eyes", category: "smileys", keywords: ["smiling", "eyes", "blush", "害羞"] },
+    { emoji: "😇", alias: "smiling_face_with_halo", category: "smileys", keywords: ["halo", "angel", "天使"] },
+    { emoji: "🥰", alias: "smiling_face_with_hearts", category: "smileys", keywords: ["hearts", "love", "喜欢"] },
+    { emoji: "😍", alias: "smiling_face_with_heart_eyes", category: "smileys", keywords: ["heart eyes", "love", "爱心眼"] },
+    { emoji: "🤩", alias: "star_struck", category: "smileys", keywords: ["star struck", "excited", "星星眼"] },
+    { emoji: "😘", alias: "face_blowing_a_kiss", category: "smileys", keywords: ["kiss", "blowing", "飞吻"] },
+    { emoji: "🤔", alias: "thinking_face", category: "smileys", keywords: ["thinking", "hmm", "思考"] },
+    { emoji: "🤐", alias: "zipper_mouth_face", category: "smileys", keywords: ["zipper", "mouth", "闭嘴"] },
+    { emoji: "😐", alias: "neutral_face", category: "smileys", keywords: ["neutral", "meh", "无语"] },
+    { emoji: "🙄", alias: "face_with_rolling_eyes", category: "smileys", keywords: ["rolling eyes", "白眼"] },
+    { emoji: "😭", alias: "loudly_crying_face", category: "smileys", keywords: ["crying", "sob", "大哭"] },
+    { emoji: "😢", alias: "crying_face", category: "smileys", keywords: ["cry", "sad", "难过"] },
+    { emoji: "😱", alias: "face_screaming_in_fear", category: "smileys", keywords: ["scream", "fear", "震惊"] },
+    { emoji: "😎", alias: "smiling_face_with_sunglasses", category: "smileys", keywords: ["cool", "sunglasses", "酷"] },
+    { emoji: "🥳", alias: "partying_face", category: "smileys", keywords: ["party", "celebration", "庆祝"] },
+    { emoji: "👋", alias: "waving_hand", category: "people", keywords: ["wave", "hello", "挥手"] },
+    { emoji: "👏", alias: "clapping_hands", category: "people", keywords: ["clap", "applause", "鼓掌"] },
+    { emoji: "🙌", alias: "raising_hands", category: "people", keywords: ["raising hands", "hooray", "欢呼"] },
+    { emoji: "👍", alias: "thumbs_up", category: "people", keywords: ["thumbs up", "like", "赞"] },
+    { emoji: "👎", alias: "thumbs_down", category: "people", keywords: ["thumbs down", "dislike", "踩"] },
+    { emoji: "🙏", alias: "folded_hands", category: "people", keywords: ["prayer", "thanks", "合十"] },
+    { emoji: "🤝", alias: "handshake", category: "people", keywords: ["handshake", "deal", "握手"] },
+    { emoji: "💪", alias: "flexed_biceps", category: "people", keywords: ["muscle", "strong", "加油"] },
+    { emoji: "✍️", alias: "writing_hand", category: "people", keywords: ["writing", "笔记", "写"] },
+    { emoji: "🙋", alias: "person_raising_hand", category: "people", keywords: ["raise hand", "举手"] },
+    { emoji: "🐶", alias: "dog_face", category: "nature", keywords: ["dog", "pet", "狗"] },
+    { emoji: "🐱", alias: "cat_face", category: "nature", keywords: ["cat", "pet", "猫"] },
+    { emoji: "🐵", alias: "monkey_face", category: "nature", keywords: ["monkey", "猴子"] },
+    { emoji: "🐼", alias: "panda", category: "nature", keywords: ["panda", "熊猫"] },
+    { emoji: "🔥", alias: "fire", category: "nature", keywords: ["fire", "lit", "火"] },
+    { emoji: "✨", alias: "sparkles", category: "nature", keywords: ["sparkles", "shine", "闪亮"] },
+    { emoji: "🌸", alias: "cherry_blossom", category: "nature", keywords: ["flower", "blossom", "樱花"] },
+    { emoji: "🌻", alias: "sunflower", category: "nature", keywords: ["sunflower", "花"] },
+    { emoji: "🌿", alias: "herb", category: "nature", keywords: ["herb", "leaf", "植物"] },
+    { emoji: "🍀", alias: "four_leaf_clover", category: "nature", keywords: ["clover", "luck", "幸运"] },
+    { emoji: "🍇", alias: "grapes", category: "food", keywords: ["grapes", "fruit", "葡萄"] },
+    { emoji: "🍎", alias: "red_apple", category: "food", keywords: ["apple", "fruit", "苹果"] },
+    { emoji: "🍉", alias: "watermelon", category: "food", keywords: ["watermelon", "fruit", "西瓜"] },
+    { emoji: "🍔", alias: "hamburger", category: "food", keywords: ["burger", "hamburger", "汉堡"] },
+    { emoji: "🍕", alias: "pizza", category: "food", keywords: ["pizza", "披萨"] },
+    { emoji: "🍟", alias: "french_fries", category: "food", keywords: ["fries", "薯条"] },
+    { emoji: "☕", alias: "hot_beverage", category: "food", keywords: ["coffee", "tea", "饮料"] },
+    { emoji: "🍻", alias: "clinking_beer_mugs", category: "food", keywords: ["beer", "cheers", "干杯"] },
+    { emoji: "⚽", alias: "soccer_ball", category: "activities", keywords: ["soccer", "football", "足球"] },
+    { emoji: "🏀", alias: "basketball", category: "activities", keywords: ["basketball", "篮球"] },
+    { emoji: "🎮", alias: "video_game", category: "activities", keywords: ["video game", "gamepad", "游戏"] },
+    { emoji: "🎵", alias: "musical_note", category: "activities", keywords: ["music", "note", "音乐"] },
+    { emoji: "🎉", alias: "party_popper", category: "activities", keywords: ["party", "popper", "庆祝"] },
+    { emoji: "🏆", alias: "trophy", category: "activities", keywords: ["trophy", "award", "奖杯"] },
+    { emoji: "🌍", alias: "globe_showing_europe_africa", category: "travel", keywords: ["globe", "earth", "地球"] },
+    { emoji: "✈️", alias: "airplane", category: "travel", keywords: ["airplane", "flight", "飞机"] },
+    { emoji: "🚗", alias: "automobile", category: "travel", keywords: ["car", "automobile", "汽车"] },
+    { emoji: "🚄", alias: "high_speed_train", category: "travel", keywords: ["train", "rail", "高铁"] },
+    { emoji: "🚀", alias: "rocket", category: "travel", keywords: ["rocket", "space", "火箭"] },
+    { emoji: "🏖️", alias: "beach_with_umbrella", category: "travel", keywords: ["beach", "vacation", "沙滩"] },
+    { emoji: "💡", alias: "light_bulb", category: "objects", keywords: ["light bulb", "idea", "灵感"] },
+    { emoji: "💻", alias: "laptop", category: "objects", keywords: ["computer", "laptop", "电脑"] },
+    { emoji: "📱", alias: "mobile_phone", category: "objects", keywords: ["phone", "mobile", "手机"] },
+    { emoji: "📷", alias: "camera", category: "objects", keywords: ["camera", "相机"] },
+    { emoji: "🎁", alias: "wrapped_gift", category: "objects", keywords: ["gift", "present", "礼物"] },
+    { emoji: "💰", alias: "money_bag", category: "objects", keywords: ["money", "bag", "钱"] },
+    { emoji: "❤️", alias: "red_heart", category: "symbols", keywords: ["heart", "love", "红心"] },
+    { emoji: "🧡", alias: "orange_heart", category: "symbols", keywords: ["heart", "orange", "橙心"] },
+    { emoji: "💛", alias: "yellow_heart", category: "symbols", keywords: ["heart", "yellow", "黄心"] },
+    { emoji: "💚", alias: "green_heart", category: "symbols", keywords: ["heart", "green", "绿心"] },
+    { emoji: "💙", alias: "blue_heart", category: "symbols", keywords: ["heart", "blue", "蓝心"] },
+    { emoji: "💜", alias: "purple_heart", category: "symbols", keywords: ["heart", "purple", "紫心"] },
+    { emoji: "💔", alias: "broken_heart", category: "symbols", keywords: ["heart", "broken", "心碎"] },
+    { emoji: "💯", alias: "hundred_points", category: "symbols", keywords: ["100", "hundred", "满分"] }
+  ];
   const DEFAULT_SETTINGS = {
     previewMode: "iframe",
     postMode: "all",
@@ -99,6 +215,14 @@
     replyFabButton: null,
     replyPanel: null,
     replyPanelTitle: null,
+    replyToolbar: null,
+    replyEmojiToggleButton: null,
+    replyEmojiPanel: null,
+    replyEmojiSearchInput: null,
+    replyEmojiCategoryRail: null,
+    replyEmojiMain: null,
+    replyEmojiScroll: null,
+    replyEmojiEmpty: null,
     replyTextarea: null,
     replySubmitButton: null,
     replyCancelButton: null,
@@ -144,6 +268,11 @@
     replyUploadPendingCount: 0,
     replyUploadSerial: 0,
     replyComposerSessionId: 0,
+    replyEmojiSearchQuery: "",
+    replyEmojiCategory: REPLY_EMOJI_CATEGORIES[0].id,
+    replyEmojiRemoteGroups: null,
+    replyEmojiSearchAliases: null,
+    replyEmojiDataLoadPromise: null,
     deferOwnerFilterAutoLoad: false,
     lastLocation: location.href,
     settings: loadSettings(),
@@ -291,6 +420,39 @@
             <div class="ld-reply-panel-title">回复主题</div>
             <button class="ld-reply-panel-close" type="button" aria-label="关闭快速回复">关闭</button>
           </div>
+          <div class="ld-reply-toolbar-wrap">
+            <div class="ld-reply-toolbar">
+              <button
+                class="ld-reply-tool ld-reply-emoji-toggle"
+                type="button"
+                aria-expanded="false"
+                aria-haspopup="dialog"
+                aria-controls="ld-reply-emoji-panel"
+                title="插入表情"
+              >
+                <span class="ld-reply-tool-icon" aria-hidden="true">😀</span>
+                <span class="ld-reply-tool-label">表情</span>
+              </button>
+            </div>
+            <div class="ld-reply-emoji-panel" id="ld-reply-emoji-panel" hidden>
+              <div class="ld-reply-emoji-search-row">
+                <input
+                  class="ld-reply-emoji-search"
+                  type="search"
+                  placeholder="按表情符号名称和别名搜索..."
+                  aria-label="搜索表情"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="ld-reply-emoji-body">
+                <div class="ld-reply-emoji-categories" role="tablist" aria-label="表情分类"></div>
+                <div class="ld-reply-emoji-main">
+                  <div class="ld-reply-emoji-empty" hidden>没找到匹配的表情</div>
+                  <div class="ld-reply-emoji-scroll" role="region" aria-label="表情列表"></div>
+                </div>
+              </div>
+            </div>
+          </div>
           <textarea class="ld-reply-textarea" rows="7" placeholder="写点什么... 支持 Markdown，可直接粘贴图片自动上传。Ctrl+Enter 或 Cmd+Enter 可发送"></textarea>
           <div class="ld-reply-status" aria-live="polite"></div>
           <div class="ld-reply-actions">
@@ -325,6 +487,14 @@
     state.replyFabButton = root.querySelector(".ld-drawer-reply-fab");
     state.replyPanel = root.querySelector(".ld-drawer-reply-panel");
     state.replyPanelTitle = root.querySelector(".ld-reply-panel-title");
+    state.replyToolbar = root.querySelector(".ld-reply-toolbar");
+    state.replyEmojiToggleButton = root.querySelector(".ld-reply-emoji-toggle");
+    state.replyEmojiPanel = root.querySelector(".ld-reply-emoji-panel");
+    state.replyEmojiSearchInput = root.querySelector(".ld-reply-emoji-search");
+    state.replyEmojiCategoryRail = root.querySelector(".ld-reply-emoji-categories");
+    state.replyEmojiMain = root.querySelector(".ld-reply-emoji-main");
+    state.replyEmojiScroll = root.querySelector(".ld-reply-emoji-scroll");
+    state.replyEmojiEmpty = root.querySelector(".ld-reply-emoji-empty");
     state.replyTextarea = root.querySelector(".ld-reply-textarea");
     state.replySubmitButton = root.querySelector('[data-action="submit"]');
     state.replyCancelButton = root.querySelector('[data-action="cancel"]');
@@ -357,6 +527,10 @@
     state.replyCancelButton.addEventListener("click", () => setReplyPanelOpen(false));
     state.replySubmitButton.addEventListener("click", handleReplySubmit);
     root.querySelector(".ld-reply-panel-close").addEventListener("click", () => setReplyPanelOpen(false));
+    state.replyEmojiToggleButton.addEventListener("click", toggleReplyEmojiPanel);
+    state.replyEmojiSearchInput.addEventListener("input", handleReplyEmojiSearchInput);
+    state.replyEmojiPanel.addEventListener("click", handleReplyEmojiPanelClick);
+    state.replyEmojiScroll.addEventListener("scroll", handleReplyEmojiScroll, { passive: true });
     state.replyTextarea.addEventListener("keydown", handleReplyTextareaKeydown);
     state.replyTextarea.addEventListener("paste", handleReplyTextareaPaste);
     root.addEventListener("click", handleDrawerRootClick);
@@ -377,6 +551,7 @@
     syncNavigationState();
     syncLatestRepliesRefreshUI();
     syncReplyUI();
+    renderReplyEmojiPanel();
     updateSettingsPopoverPosition();
   }
 
@@ -410,6 +585,10 @@
 
     if (!state.settingsPanel?.hidden && !target.closest(".ld-drawer-settings-card") && !target.closest(".ld-drawer-settings-toggle")) {
       setSettingsPanelOpen(false);
+    }
+
+    if (!state.replyEmojiPanel?.hidden && !target.closest(".ld-reply-emoji-panel") && !target.closest(".ld-reply-emoji-toggle")) {
+      setReplyEmojiPanelOpen(false);
     }
 
     if (!state.replyPanel?.hidden && !target.closest(".ld-drawer-reply-panel") && !target.closest(".ld-drawer-reply-trigger")) {
@@ -456,6 +635,13 @@
       event.preventDefault();
       event.stopPropagation();
       setSettingsPanelOpen(false);
+      return;
+    }
+
+    if (event.key === "Escape" && !state.replyEmojiPanel?.hidden) {
+      event.preventDefault();
+      event.stopPropagation();
+      setReplyEmojiPanelOpen(false);
       return;
     }
 
@@ -1573,6 +1759,7 @@
     });
 
     if (!isOpen) {
+      setReplyEmojiPanelOpen(false);
       setReplyTarget(null);
       return;
     }
@@ -1604,6 +1791,499 @@
     }
 
     return parts.join(" ") || "这条回复";
+  }
+
+  function toggleReplyEmojiPanel() {
+    if (!state.replyEmojiPanel || !state.replyEmojiToggleButton) {
+      return;
+    }
+
+    setReplyEmojiPanelOpen(state.replyEmojiPanel.hidden);
+  }
+
+  function setReplyEmojiPanelOpen(isOpen) {
+    if (!state.replyEmojiPanel || !state.replyEmojiToggleButton) {
+      return;
+    }
+
+    if (isOpen && (!state.currentTopic || !state.replyTextarea || state.isReplySubmitting)) {
+      return;
+    }
+
+    state.replyEmojiPanel.hidden = !isOpen;
+    state.replyEmojiToggleButton.setAttribute("aria-expanded", String(isOpen));
+    state.replyEmojiToggleButton.classList.toggle("is-active", isOpen);
+
+    if (!isOpen) {
+      state.replyEmojiSearchQuery = "";
+      state.replyEmojiCategory = REPLY_EMOJI_CATEGORIES[0].id;
+      if (state.replyEmojiSearchInput) {
+        state.replyEmojiSearchInput.value = "";
+      }
+      renderReplyEmojiPanel();
+      if (state.replyEmojiScroll) {
+        state.replyEmojiScroll.scrollTop = 0;
+      }
+      return;
+    }
+
+    ensureReplyEmojiData().catch(() => {});
+    renderReplyEmojiPanel();
+    if (state.replyEmojiScroll) {
+      state.replyEmojiScroll.scrollTop = 0;
+    }
+    queueMicrotask(() => state.replyEmojiSearchInput?.focus());
+  }
+
+  function ensureReplyEmojiData() {
+    if (state.replyEmojiRemoteGroups) {
+      return Promise.resolve();
+    }
+
+    if (state.replyEmojiDataLoadPromise) {
+      return state.replyEmojiDataLoadPromise;
+    }
+
+    state.replyEmojiDataLoadPromise = Promise.all([
+      fetchReplyEmojiJson(`${location.origin}/emojis.json`),
+      fetchReplyEmojiJson(`${location.origin}/emojis/search-aliases.json`)
+    ]).then(([groups, searchAliases]) => {
+      if (!groups || typeof groups !== "object") {
+        throw new Error("emoji groups payload invalid");
+      }
+
+      state.replyEmojiRemoteGroups = groups;
+      state.replyEmojiSearchAliases = searchAliases && typeof searchAliases === "object"
+        ? searchAliases
+        : {};
+      const categories = getReplyEmojiCategories();
+      if (categories.length > 0 && !categories.some((item) => item.id === state.replyEmojiCategory)) {
+        state.replyEmojiCategory = categories[0].id;
+      }
+      renderReplyEmojiPanel();
+    }).catch(() => {
+      renderReplyEmojiPanel();
+    }).finally(() => {
+      state.replyEmojiDataLoadPromise = null;
+    });
+
+    return state.replyEmojiDataLoadPromise;
+  }
+
+  async function fetchReplyEmojiJson(url) {
+    const response = await fetch(url, {
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!response.ok || !contentType.includes("json")) {
+      throw new Error(`Unexpected response: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  function handleReplyEmojiSearchInput(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) {
+      return;
+    }
+
+    state.replyEmojiSearchQuery = target.value || "";
+    renderReplyEmojiPanel();
+  }
+
+  function handleReplyEmojiPanelClick(event) {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const categoryButton = target.closest("[data-emoji-category]");
+    if (categoryButton) {
+      const category = categoryButton.getAttribute("data-emoji-category") || "";
+      if (!category) {
+        return;
+      }
+
+      state.replyEmojiCategory = category;
+      const isSearching = Boolean(normalizeReplyEmojiSearchText(state.replyEmojiSearchQuery));
+      if (isSearching) {
+        if (state.replyEmojiSearchInput) {
+          state.replyEmojiSearchInput.value = "";
+        }
+        state.replyEmojiSearchQuery = "";
+        renderReplyEmojiPanel();
+        requestAnimationFrame(() => scrollReplyEmojiCategoryIntoView(category, false));
+      } else {
+        syncReplyEmojiCategoryButtons(false);
+        scrollReplyEmojiCategoryIntoView(category);
+      }
+      return;
+    }
+
+    const emojiButton = target.closest("[data-emoji-alias]");
+    if (!emojiButton) {
+      return;
+    }
+
+    const alias = emojiButton.getAttribute("data-emoji-alias") || "";
+    if (!alias) {
+      return;
+    }
+
+    insertReplyEmojiShortcode(alias);
+    setReplyEmojiPanelOpen(false);
+    queueMicrotask(() => state.replyTextarea?.focus());
+  }
+
+  function renderReplyEmojiPanel() {
+    if (
+      !state.replyEmojiCategoryRail
+      || !state.replyEmojiScroll
+      || !state.replyEmojiEmpty
+    ) {
+      return;
+    }
+
+    const searchQuery = normalizeReplyEmojiSearchText(state.replyEmojiSearchQuery);
+    const isSearching = Boolean(searchQuery);
+    const categories = getReplyEmojiCategories();
+    const activeCategory = categories.find((item) => item.id === state.replyEmojiCategory)
+      || categories[0]
+      || null;
+    const emojiEntries = getReplyEmojiEntries();
+    const matches = emojiEntries.filter((item) => {
+      if (isSearching) {
+        return doesReplyEmojiMatchSearch(item, searchQuery);
+      }
+
+      return item.category === activeCategory?.id;
+    });
+
+    const categoryNodes = categories.map((category) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "ld-reply-emoji-category";
+      button.setAttribute("data-emoji-category", category.id);
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-label", category.label);
+      button.setAttribute("aria-selected", String(!isSearching && category.id === activeCategory.id));
+      button.title = category.label;
+      button.classList.toggle("is-active", !isSearching && category.id === activeCategory.id);
+
+      if (category.iconUrl) {
+        const image = document.createElement("img");
+        image.className = "ld-reply-emoji-category-icon ld-reply-emoji-category-image";
+        image.src = category.iconUrl;
+        image.alt = "";
+        image.loading = "lazy";
+        image.decoding = "async";
+        image.width = 18;
+        image.height = 18;
+        button.append(image);
+      } else {
+        const icon = document.createElement("span");
+        icon.className = "ld-reply-emoji-category-icon";
+        icon.textContent = category.icon || "✨";
+        button.append(icon);
+      }
+
+      return button;
+    });
+    state.replyEmojiCategoryRail.replaceChildren(...categoryNodes);
+
+    if (isSearching) {
+      state.replyEmojiScroll.replaceChildren(
+        buildReplyEmojiSection(`搜索结果 · ${matches.length}`, matches)
+      );
+      state.replyEmojiScroll.scrollTop = 0;
+      state.replyEmojiEmpty.hidden = matches.length > 0;
+      syncReplyEmojiCategoryButtons(true);
+      return;
+    }
+
+    const sections = categories.map((category) => {
+      const categoryEmojis = emojiEntries.filter((item) => item.category === category.id);
+      return buildReplyEmojiSection(category.label, categoryEmojis, category.id);
+    }).filter(Boolean);
+
+    state.replyEmojiScroll.replaceChildren(...sections);
+    state.replyEmojiEmpty.hidden = true;
+    syncReplyEmojiCategoryButtons(false);
+  }
+
+  function buildReplyEmojiSection(title, emojis, categoryId = "") {
+    const section = document.createElement("section");
+    section.className = "ld-reply-emoji-section";
+    if (categoryId) {
+      section.dataset.emojiSection = categoryId;
+    }
+
+    const heading = document.createElement("div");
+    heading.className = "ld-reply-emoji-section-title";
+    heading.textContent = title;
+
+    const grid = document.createElement("div");
+    grid.className = "ld-reply-emoji-grid";
+    grid.setAttribute("role", "listbox");
+    grid.setAttribute("aria-label", title);
+
+    for (const item of emojis) {
+      grid.appendChild(buildReplyEmojiItem(item));
+    }
+
+    section.append(heading, grid);
+    return section;
+  }
+
+  function buildReplyEmojiItem(item) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ld-reply-emoji-item";
+    button.setAttribute("data-emoji-alias", item.alias);
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-label", `插入 :${item.alias}:`);
+    button.title = `:${item.alias}:`;
+
+    let icon;
+    if (item.url) {
+      icon = document.createElement("img");
+      icon.className = "ld-reply-emoji-item-icon ld-reply-emoji-item-image";
+      icon.src = item.url;
+      icon.alt = item.alias;
+      icon.loading = "lazy";
+      icon.decoding = "async";
+      icon.width = 20;
+      icon.height = 20;
+    } else {
+      icon = document.createElement("span");
+      icon.className = "ld-reply-emoji-item-icon";
+      icon.textContent = item.emoji;
+    }
+
+    button.append(icon);
+    return button;
+  }
+
+  function getReplyEmojiCategories() {
+    if (!state.replyEmojiRemoteGroups) {
+      return REPLY_EMOJI_CATEGORIES;
+    }
+
+    const groupKeys = Object.keys(state.replyEmojiRemoteGroups);
+    const orderedKeys = [
+      ...REPLY_REMOTE_EMOJI_GROUP_ORDER.filter((key) => groupKeys.includes(key)),
+      ...groupKeys.filter((key) => !REPLY_REMOTE_EMOJI_GROUP_ORDER.includes(key))
+    ];
+
+    return orderedKeys
+      .filter((key) => Array.isArray(state.replyEmojiRemoteGroups?.[key]) && state.replyEmojiRemoteGroups[key].length > 0)
+      .map((key) => ({
+        id: key,
+        label: getReplyEmojiGroupLabel(key),
+        ...getReplyEmojiGroupIconData(key, state.replyEmojiRemoteGroups[key])
+      }));
+  }
+
+  function getReplyEmojiEntries() {
+    if (!state.replyEmojiRemoteGroups) {
+      return REPLY_EMOJIS;
+    }
+
+    const entries = [];
+    for (const [group, emojis] of Object.entries(state.replyEmojiRemoteGroups)) {
+      if (!Array.isArray(emojis)) {
+        continue;
+      }
+
+      for (const emoji of emojis) {
+        const alias = typeof emoji?.name === "string" ? emoji.name.trim() : "";
+        if (!alias) {
+          continue;
+        }
+
+        const searchAliases = Array.isArray(state.replyEmojiSearchAliases?.[alias])
+          ? state.replyEmojiSearchAliases[alias]
+          : [];
+        entries.push({
+          alias,
+          category: group,
+          emoji: "",
+          url: typeof emoji?.url === "string" ? emoji.url : "",
+          keywords: [alias, ...searchAliases]
+        });
+      }
+    }
+
+    return entries;
+  }
+
+  function getReplyEmojiGroupLabel(group) {
+    if (REPLY_REMOTE_EMOJI_GROUP_META[group]?.label) {
+      return REPLY_REMOTE_EMOJI_GROUP_META[group].label;
+    }
+
+    return String(group || "")
+      .replace(/_/g, " ")
+      .replace(/&/g, " & ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getReplyEmojiGroupIconData(group, emojis = []) {
+    const fallbackIcon = REPLY_REMOTE_EMOJI_GROUP_META[group]?.icon || "✨";
+    const first = Array.isArray(emojis) ? emojis[0] : null;
+    const iconUrl = typeof first?.url === "string" ? first.url.trim() : "";
+
+    if (group === "favorites") {
+      return {
+        icon: fallbackIcon,
+        iconUrl: ""
+      };
+    }
+
+    if (iconUrl) {
+      return {
+        icon: "",
+        iconUrl
+      };
+    }
+
+    return {
+      icon: fallbackIcon,
+      iconUrl: ""
+    };
+  }
+
+  function syncReplyEmojiCategoryButtons(isSearching = false) {
+    if (!state.replyEmojiCategoryRail) {
+      return;
+    }
+
+    for (const button of state.replyEmojiCategoryRail.querySelectorAll("[data-emoji-category]")) {
+      if (!(button instanceof HTMLButtonElement)) {
+        continue;
+      }
+
+      const categoryId = button.getAttribute("data-emoji-category") || "";
+      const isActive = !isSearching && categoryId === state.replyEmojiCategory;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", String(isActive));
+    }
+  }
+
+  function handleReplyEmojiScroll() {
+    if (!state.replyEmojiScroll) {
+      return;
+    }
+
+    if (normalizeReplyEmojiSearchText(state.replyEmojiSearchQuery)) {
+      return;
+    }
+
+    const nextCategory = getReplyEmojiCategoryFromScroll();
+    if (!nextCategory || nextCategory === state.replyEmojiCategory) {
+      return;
+    }
+
+    state.replyEmojiCategory = nextCategory;
+    syncReplyEmojiCategoryButtons(false);
+  }
+
+  function getReplyEmojiCategoryFromScroll() {
+    if (!state.replyEmojiScroll) {
+      return "";
+    }
+
+    const sections = Array.from(state.replyEmojiScroll.querySelectorAll("[data-emoji-section]"));
+    if (!sections.length) {
+      return "";
+    }
+
+    const scrollTop = state.replyEmojiScroll.scrollTop;
+    let activeCategory = sections[0].getAttribute("data-emoji-section") || "";
+
+    for (const section of sections) {
+      if (!(section instanceof HTMLElement)) {
+        continue;
+      }
+
+      const category = section.getAttribute("data-emoji-section") || "";
+      if (!category) {
+        continue;
+      }
+
+      if (section.offsetTop - scrollTop <= 18) {
+        activeCategory = category;
+      } else {
+        break;
+      }
+    }
+
+    return activeCategory;
+  }
+
+  function scrollReplyEmojiCategoryIntoView(categoryId, smooth = true) {
+    if (!state.replyEmojiScroll || !categoryId) {
+      return;
+    }
+
+    const targetSection = state.replyEmojiScroll.querySelector(`[data-emoji-section="${categoryId}"]`);
+    if (!(targetSection instanceof HTMLElement)) {
+      return;
+    }
+
+    state.replyEmojiScroll.scrollTo({
+      top: Math.max(0, targetSection.offsetTop),
+      behavior: smooth ? "smooth" : "auto"
+    });
+  }
+
+  function doesReplyEmojiMatchSearch(item, searchQuery) {
+    const haystack = normalizeReplyEmojiSearchText([
+      item.alias,
+      ...(Array.isArray(item.keywords) ? item.keywords : [])
+    ].join(" "));
+    const tokens = searchQuery.split(" ").filter(Boolean);
+
+    return tokens.every((token) => haystack.includes(token));
+  }
+
+  function normalizeReplyEmojiSearchText(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/:+/g, " ")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ");
+  }
+
+  function insertReplyEmojiShortcode(alias) {
+    if (!state.replyTextarea || !alias) {
+      return;
+    }
+
+    const textarea = state.replyTextarea;
+    const start = Number.isFinite(textarea.selectionStart)
+      ? textarea.selectionStart
+      : textarea.value.length;
+    const end = Number.isFinite(textarea.selectionEnd)
+      ? textarea.selectionEnd
+      : start;
+    const beforeChar = start > 0 ? textarea.value.charAt(start - 1) : "";
+    const afterChar = end < textarea.value.length ? textarea.value.charAt(end) : "";
+    const prefix = beforeChar && !/\s/.test(beforeChar) ? " " : "";
+    const suffix = afterChar && !/\s/.test(afterChar) ? " " : " ";
+    const shortcode = `:${alias}:`;
+
+    textarea.focus();
+    textarea.setRangeText(`${prefix}${shortcode}${suffix}`, start, end, "end");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
   function handleReplyTextareaKeydown(event) {
@@ -3438,12 +4118,17 @@
 
   function formatDate(value) {
     try {
+      const date = new Date(value);
+      const now = new Date();
+      const isSameYear = date.getFullYear() === now.getFullYear();
+
       return new Intl.DateTimeFormat("zh-CN", {
+        year: isSameYear ? undefined : "numeric",
         month: "short",
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit"
-      }).format(new Date(value));
+      }).format(date);
     } catch {
       return value;
     }
@@ -3496,6 +4181,8 @@
   function resetReplyComposer() {
     state.replyComposerSessionId += 1;
     cancelReplyUploads();
+    state.replyEmojiSearchQuery = "";
+    state.replyEmojiCategory = REPLY_EMOJI_CATEGORIES[0].id;
 
     if (state.replyTextarea) {
       state.replyTextarea.value = "";
@@ -3508,6 +4195,7 @@
 
     state.isReplySubmitting = false;
     setReplyPanelOpen(false);
+    renderReplyEmojiPanel();
     syncReplyUI();
   }
 
@@ -3562,6 +4250,18 @@
 
     if (state.replyCancelButton) {
       state.replyCancelButton.disabled = state.isReplySubmitting;
+    }
+
+    if (state.replyEmojiToggleButton) {
+      const disabled = !hasTopic || state.isReplySubmitting;
+      state.replyEmojiToggleButton.disabled = disabled;
+      state.replyEmojiToggleButton.classList.toggle("is-disabled", disabled);
+      if (state.replyEmojiSearchInput) {
+        state.replyEmojiSearchInput.disabled = disabled;
+      }
+      if (disabled && !state.replyEmojiPanel?.hidden) {
+        setReplyEmojiPanelOpen(false);
+      }
     }
   }
 
