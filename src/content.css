@@ -1045,6 +1045,22 @@ body.ld-drawer-page-open #ld-drawer-root {
   max-width: 100%;
 }
 
+#ld-drawer-root .ld-post-body a[data-clicks]::after {
+  content: attr(data-clicks);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  min-width: 18px;
+  padding: 0.18em 0.42em;
+  border-radius: 999px;
+  background: var(--primary-low, rgba(15, 23, 42, 0.1));
+  color: var(--primary-medium, rgba(15, 23, 42, 0.68));
+  font-size: 11px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 #ld-drawer-root .ld-post-body img {
   cursor: zoom-in;
 }

@@ -1393,6 +1393,12 @@
   function buildPostCard(post, topicOwner = null) {
     const article = document.createElement("article");
     article.className = "ld-post-card";
+    if (Number.isFinite(post?.id)) {
+      article.dataset.postId = String(post.id);
+    }
+    if (Number.isFinite(post?.topic_id)) {
+      article.dataset.topicId = String(post.topic_id);
+    }
     if (typeof post.post_number === "number") {
       article.dataset.postNumber = String(post.post_number);
     }
@@ -1441,6 +1447,7 @@
       link.target = "_blank";
       link.rel = "noopener noreferrer";
     }
+    applyCookedLinkCounts(body, post);
 
     const actions = document.createElement("div");
     actions.className = "ld-post-actions";
@@ -1453,6 +1460,114 @@
     );
     article.append(header, body, actions);
     return article;
+  }
+
+  function applyCookedLinkCounts(container, post) {
+    if (!(container instanceof Element) || !Array.isArray(post?.link_counts) || !post.link_counts.length) {
+      return;
+    }
+
+    const bestElements = new Map();
+    container.querySelectorAll("aside.onebox").forEach((onebox) => {
+      for (let level = 1; level <= 6; level += 1) {
+        const headingLink = onebox.querySelector(`h${level} a[href]`);
+        if (headingLink) {
+          bestElements.set(onebox, headingLink);
+          return;
+        }
+      }
+
+      const headerLink = onebox.querySelector("header a[href]");
+      if (headerLink) {
+        bestElements.set(onebox, headerLink);
+      }
+    });
+
+    for (const linkCount of post.link_counts) {
+      const clicks = Number(linkCount?.clicks || 0);
+      if (!Number.isFinite(clicks) || clicks < 1) {
+        continue;
+      }
+
+      for (const link of container.querySelectorAll("a[href]")) {
+        if (!(link instanceof HTMLAnchorElement)) {
+          continue;
+        }
+
+        if (!doesCookedLinkMatchCount(link, linkCount) || !isCookedTrackableLink(link)) {
+          continue;
+        }
+
+        const onebox = link.closest(".onebox");
+        if (onebox && bestElements.has(onebox) && bestElements.get(onebox) !== link) {
+          continue;
+        }
+
+        setCookedLinkClickCount(link, clicks);
+      }
+    }
+  }
+
+  function doesCookedLinkMatchCount(link, linkCount) {
+    const href = (link.getAttribute("href") || "").trim();
+    const countUrl = String(linkCount?.url || "");
+    if (!href || !countUrl) {
+      return false;
+    }
+
+    let valid = href === countUrl;
+
+    if (linkCount?.internal && /^\/uploads\//.test(countUrl)) {
+      valid = href.includes(countUrl);
+    }
+
+    if (linkCount?.internal && /\?/.test(href)) {
+      valid = href.split("?")[0] === countUrl;
+    }
+
+    return valid;
+  }
+
+  function isCookedTrackableLink(link) {
+    if (!(link instanceof HTMLAnchorElement)) {
+      return false;
+    }
+
+    if (
+      ["lightbox", "no-track-link", "hashtag", "hashtag-cooked", "back"].some((name) => link.classList.contains(name))
+    ) {
+      return false;
+    }
+
+    const closest = link.closest("aside.quote, .elided, .expanded-embed");
+    if (closest && closest !== link) {
+      return false;
+    }
+
+    if (link.closest(".onebox-result, .onebox-body")) {
+      const oneboxLink = link.closest(".onebox")?.querySelector("header a");
+      if (oneboxLink && oneboxLink.href === link.href) {
+        return true;
+      }
+    }
+
+    return !link.closest(".hashtag, .hashtag-cooked, .hashtag-icon-placeholder, .badge-category, .onebox-result, .onebox-body");
+  }
+
+  function setCookedLinkClickCount(link, clicks) {
+    if (!(link instanceof HTMLAnchorElement)) {
+      return;
+    }
+
+    const normalized = Number(clicks);
+    if (!Number.isFinite(normalized) || normalized < 1) {
+      link.removeAttribute("data-clicks");
+      return;
+    }
+
+    link.dataset.clicks = String(Math.max(0, Math.round(normalized)));
+    const labelText = link.textContent?.trim() || link.getAttribute("href") || "链接";
+    link.setAttribute("aria-label", `${labelText} 已点击 ${link.dataset.clicks} 次`);
   }
 
   function buildLikeButton(post) {
@@ -2782,6 +2897,14 @@
       return;
     }
 
+    const trackedLink = target.closest(".ld-post-body a[href]");
+    if (trackedLink instanceof HTMLAnchorElement && isCookedTrackableLink(trackedLink)) {
+      if (event.button !== 2) {
+        trackCookedLinkClick(trackedLink).catch(() => {});
+      }
+      return;
+    }
+
     const image = target.closest(".ld-post-body img");
     if (!(image instanceof HTMLImageElement)) {
       return;
@@ -2790,6 +2913,88 @@
     event.preventDefault();
     event.stopPropagation();
     openImagePreview(image);
+  }
+
+  async function trackCookedLinkClick(link) {
+    const article = link.closest(".ld-post-card");
+    const postId = Number(article?.dataset?.postId || 0);
+    const topicId = Number(article?.dataset?.topicId || state.currentTopic?.id || 0);
+    const href = (link.getAttribute("href") || "").trim();
+
+    if (!href || !Number.isFinite(postId) || postId <= 0 || !Number.isFinite(topicId) || topicId <= 0) {
+      return;
+    }
+
+    const tracked = sendCookedLinkClickTrack({ url: href, postId, topicId });
+    if (tracked) {
+      incrementCookedLinkClickCount(link);
+    }
+  }
+
+  function sendCookedLinkClickTrack({ url, postId, topicId }) {
+    if (!url || !postId || !topicId) {
+      return false;
+    }
+
+    if (navigator.sendBeacon) {
+      const data = new FormData();
+      data.append("url", url);
+      data.append("post_id", String(postId));
+      data.append("topic_id", String(topicId));
+      if (navigator.sendBeacon(`${location.origin}/clicks/track`, data)) {
+        return true;
+      }
+    }
+
+    const csrfToken = getCsrfToken();
+    const body = new URLSearchParams();
+    body.set("url", url);
+    body.set("post_id", String(postId));
+    body.set("topic_id", String(topicId));
+
+    fetch(`${location.origin}/clicks/track`, {
+      method: "POST",
+      credentials: "include",
+      keepalive: true,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-Requested-With": "XMLHttpRequest",
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {})
+      },
+      body
+    }).catch(() => {});
+
+    return true;
+  }
+
+  function incrementCookedLinkClickCount(link) {
+    if (!(link instanceof HTMLAnchorElement)) {
+      return;
+    }
+
+    const article = link.closest(".ld-post-card");
+    if (!(article instanceof Element)) {
+      return;
+    }
+
+    const href = (link.getAttribute("href") || "").trim();
+    if (!href) {
+      return;
+    }
+
+    for (const candidate of article.querySelectorAll(".ld-post-body a[href]")) {
+      if (!(candidate instanceof HTMLAnchorElement)) {
+        continue;
+      }
+
+      if (!doesCookedLinkMatchCount(candidate, { url: href, internal: false })) {
+        continue;
+      }
+
+      const current = Number(candidate.dataset.clicks || 0);
+      setCookedLinkClickCount(candidate, (Number.isFinite(current) ? current : 0) + 1);
+    }
   }
 
   function handleImagePreviewClick(event) {
